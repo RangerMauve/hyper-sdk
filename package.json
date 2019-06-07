@@ -1,0 +1,26 @@
+{
+  "name": "sdk",
+  "version": "1.0.0",
+  "description": "The official Dat SDK (WIP)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/datproject/sdk.git"
+  },
+  "keywords": [
+    "dat",
+    "sdk",
+    "hyperdrive",
+    "hypercore",
+    "p2p"
+  ],
+  "author": "datproject",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/datproject/sdk/issues"
+  },
+  "homepage": "https://github.com/datproject/sdk#readme"
+}
