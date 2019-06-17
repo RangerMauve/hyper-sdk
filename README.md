@@ -33,6 +33,10 @@ The official Dat SDK (WIP)
 - [ ] Integrate with Daemon
   - [ ] Wrap RPC client API in Callback API
   - [ ] Auto-spawn the daemon
+  - [ ] Have web use existing implementation
   - [ ] Update Cabal with new Daemon-based code
 - [ ] Update API / Integration based on feedback
 - [ ] V 1.0.0
+- [ ] Electron support with auto-spawning
+- [ ] React-native support with node.js thread running daemon
+- [ ] Web-Daemon
