@@ -2,6 +2,8 @@
 
 Based on Beaker's upcoming [APIs](https://hackmd.io/7U2Tydh0QVGdk2JYDVYMmA)
 
+This is going to be fleshed out after the Callback-style API is ready.
+
 ```js
 const { Hyperdrive, Hypercore, PeerSockets, DNS } = require('@dat/sdk')
 
