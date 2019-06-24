@@ -22,5 +22,14 @@
   "bugs": {
     "url": "https://github.com/datproject/sdk/issues"
   },
-  "homepage": "https://github.com/datproject/sdk#readme"
+  "homepage": "https://github.com/datproject/sdk#readme",
+  "dependencies": {
+    "dat-dns": "^4.0.0",
+    "dat-encoding": "^5.0.1",
+    "hypercore-crypto": "^1.0.0",
+    "hyperdiscovery": "^10.0.0",
+    "random-access-corestore": "^0.9.2",
+    "thunky": "^1.0.3",
+    "universal-dat-storage": "^1.1.0"
+  }
 }

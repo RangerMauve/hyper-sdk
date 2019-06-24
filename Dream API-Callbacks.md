@@ -5,7 +5,9 @@ Based on existing Dat, but the swarming / storage is handled by the SDK.
 Should work the same in Node/Browser/Beaker (once hypercore in Beaker lands)
 
 ```js
-const { Hyperdrive, Hypercore, Corestore } = require('@dat/sdk')
+const SDK = require('@dat/sdk')
+
+const  { Hyperdrive, Hypercore, Corestore } = new SDK()
 
 // Hyperdrive is a high level data structure in Dat for dealing with filesystem
 // It's great for sharing folders and data that can be represented as files

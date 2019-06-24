@@ -16,7 +16,7 @@ The official Dat SDK (WIP)
 ## Roadmap
 
 - [ ] Initial Callback API using hyperdiscovery / universal-dat-storage
-  - [ ] Draft API
+  - [x] Draft API
   - [ ] Implement API
   - [ ] Higher level Peers API?
   - [ ] Node.js compat
