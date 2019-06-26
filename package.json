@@ -1,10 +1,10 @@
 {
-  "name": "sdk",
+  "name": "dat-sdk",
   "version": "1.0.0",
   "description": "The official Dat SDK (WIP)",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test"
   },
   "repository": {
     "type": "git",
@@ -22,14 +22,19 @@
   "bugs": {
     "url": "https://github.com/datproject/sdk/issues"
   },
+  "browser": {
+    "dat-dns": "dns-web.js"
+  },
   "homepage": "https://github.com/datproject/sdk#readme",
   "dependencies": {
     "dat-dns": "^4.0.0",
     "dat-encoding": "^5.0.1",
     "hypercore-crypto": "^1.0.0",
     "hyperdiscovery": "^10.0.0",
-    "random-access-corestore": "^0.9.2",
-    "thunky": "^1.0.3",
-    "universal-dat-storage": "^1.1.0"
+    "universal-dat-storage": "^1.2.1"
+  },
+  "devDependencies": {
+    "tape": "^4.10.2",
+    "tmp": "^0.1.0"
   }
 }

@@ -1,6 +1,12 @@
 # sdk
 The official Dat SDK (WIP)
 
+## Why use this?
+
+Dat consists of a bunch of low level building blocks for working with data in distributed applications. Although this modularity makes it easy to mix and match pieces, it adds complexity when it comes to actually building something.
+
+The Dat SDK combines the lower level pieces of the Dat ecosystem into high level APIs that you can use across platforms so that you can focus on your application rather than the gritty details of how it works.
+
 ## Goals
 
 - High level API
@@ -13,14 +19,25 @@ The official Dat SDK (WIP)
 - Easy to wrap with Node APIs for backwards-compat
 - Initial implementation using DatArchive?
 
+## API
+
+```
+const {Hypercore, Hyperdrive, resolveName } = require('@dat/sdk')
+```
+
 ## Roadmap
 
 - [ ] Initial Callback API using hyperdiscovery / universal-dat-storage
   - [x] Draft API
   - [ ] Implement API
+    - [ ] Hyperdrive
+    - [ ] Hypercore
+    - [ ] Corestore
+    - [ ] Extensions support
+    - [ ] dat-dns support
   - [ ] Higher level Peers API?
-  - [ ] Node.js compat
-  - [ ] Web compat
+  - [ ] Node.js compat (tests)
+  - [ ] Web compat (tests)
   - [ ] Release V 0.1.0
 - [ ] Integrate with Cabal as a demo
 - [ ] Update callback API based on feedback
