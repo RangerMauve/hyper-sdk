@@ -29,14 +29,12 @@ const {Hypercore, Hyperdrive, resolveName } = require('@dat/sdk')
 
 - [ ] Initial Callback API using hyperdiscovery / universal-dat-storage
   - [x] Draft API
-  - [ ] Implement API
-    - [ ] Hyperdrive
-    - [ ] Hypercore
-    - [ ] Corestore
-    - [ ] Extensions support
-    - [ ] dat-dns support
-  - [ ] Higher level Peers API?
-  - [ ] Node.js compat (tests)
+  - [x] Implement API
+    - [x] Hyperdrive
+    - [x] Hypercore
+    - [x] Extensions support (not released in master yet)
+    - [x] dat-dns support
+  - [x] Node.js compat (tests)
   - [ ] Web compat (tests)
   - [ ] Release V 0.1.0
 - [ ] Integrate with Cabal as a demo
@@ -48,12 +46,14 @@ const {Hypercore, Hyperdrive, resolveName } = require('@dat/sdk')
   - [ ] Release V 0.2.0
 - [ ] Demo reusing logic between Beaker and Node / etc (static site generator?)
 - [ ] Integrate with Daemon
+  - [ ] Corestore API
   - [ ] Wrap RPC client API in Callback API
   - [ ] Auto-spawn the daemon
   - [ ] Have web use existing implementation
   - [ ] Update Cabal with new Daemon-based code
 - [ ] Update API / Integration based on feedback
 - [ ] V 1.0.0
+- [ ] Higher level Peers API?
 - [ ] Electron support with auto-spawning
 - [ ] React-native support with node.js thread running daemon
 - [ ] Web-Daemon

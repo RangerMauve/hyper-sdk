@@ -4,7 +4,8 @@
   "description": "The official Dat SDK (WIP)",
   "main": "index.js",
   "scripts": {
-    "test": "node test"
+    "test": "node test",
+    "build-test": "browserify -d test.js > test-bundle.js"
   },
   "repository": {
     "type": "git",
@@ -23,17 +24,20 @@
     "url": "https://github.com/datproject/sdk/issues"
   },
   "browser": {
-    "dat-dns": "dns-web.js"
+    "dat-dns": "./dns-web.js"
   },
   "homepage": "https://github.com/datproject/sdk#readme",
   "dependencies": {
     "dat-dns": "^4.0.0",
     "dat-encoding": "^5.0.1",
+    "hypercore": "github:RangerMauve/hypercore#extensions",
     "hypercore-crypto": "^1.0.0",
     "hyperdiscovery": "^10.0.0",
+    "hyperdrive": "github:RangerMauve/hyperdrive#extensions",
     "universal-dat-storage": "^1.2.1"
   },
   "devDependencies": {
+    "browserify": "^16.2.3",
     "tape": "^4.10.2",
     "tmp": "^0.1.0"
   }
