@@ -20,7 +20,7 @@ The Dat SDK combines the lower level pieces of the Dat ecosystem into high level
 
 ## API/Examples
 
-```
+```js
 const {Hypercore, Hyperdrive, resolveName, destroy } = require('dat-sdk')
 
 const archive = new Hyperdrive()
