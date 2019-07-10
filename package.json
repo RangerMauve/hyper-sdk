@@ -1,6 +1,6 @@
 {
   "name": "dat-sdk",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "The official Dat SDK (WIP)",
   "main": "index.js",
   "scripts": {
@@ -30,10 +30,10 @@
   "dependencies": {
     "dat-dns": "^4.0.0",
     "dat-encoding": "^5.0.1",
-    "hypercore": "github:RangerMauve/hypercore#extensions",
+    "hypercore": "^7.5.0",
     "hypercore-crypto": "^1.0.0",
     "hyperdiscovery": "^10.0.0",
-    "hyperdrive": "github:RangerMauve/hyperdrive#extensions",
+    "hyperdrive": "^9.15.0",
     "universal-dat-storage": "^1.2.1"
   },
   "devDependencies": {
