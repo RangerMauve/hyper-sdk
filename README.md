@@ -33,7 +33,7 @@ archive.ready(() => {
 
   // Check out the hyperdrive docs for what you can do with it
   // https://www.npmjs.com/package/hyperdrive#api
-  archive.writeFile('/example.txt', 'Hello World!`, () => {
+  archive.writeFile('/example.txt', 'Hello World!', () => {
     console.log('Written example file!')
   })
 })
