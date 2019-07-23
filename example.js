@@ -1,27 +1,4 @@
-# sdk
-The official Dat SDK (WIP)
-
-## Why use this?
-
-Dat consists of a bunch of low level building blocks for working with data in distributed applications. Although this modularity makes it easy to mix and match pieces, it adds complexity when it comes to actually building something.
-
-The Dat SDK combines the lower level pieces of the Dat ecosystem into high level APIs that you can use across platforms so that you can focus on your application rather than the gritty details of how it works.
-
-## Goals
-
-- High level API
-- Compatible with Beaker
-- Cross-platform with same codebase
-  - Node
-  - Web (non-beaker)
-  - Beaker
-  - React-Native?
-  - Electron?
-
-## API/Examples
-
-```
-const SDK = require('dat-sdk')
+const SDK = require('./')
 const { Hypercore, Hyperdrive, resolveName, destroy } = SDK()
 
 const archive = Hyperdrive()
@@ -124,44 +101,3 @@ trie.put('key', 'value', () => {
     console.log('Loaded value from trie:', value)
   })
 })
-
-```
-
-## Roadmap
-
-- [ ] Initial Callback API using hyperdiscovery / universal-dat-storage
-  - [x] Draft API
-  - [x] Implement API
-    - [x] Hyperdrive
-    - [x] Hypercore
-    - [x] Extensions support (not released in master yet)
-    - [x] dat-dns support
-  - [x] Node.js compat (tests)
-  - [x] Web compat (tests)
-  - [x] Release v0.1.0
-- [ ] Initial Beaker integration
-  - [ ] [Wrap](https://github.com/RangerMauve/datarchive-to-hyperdrive) DatArchive with hyperdrive
-  - [ ] Wrap resolveName API with Beaker APIs
-  - [ ] Test that hypercore still works using web storage / proxying
-  - [ ] Make sure tests work in Node / Web / Beaker
-  - Release v0.2.0
-- [ ] Update callback API based on feedback
-  - [ ] Figure out Corestore / debugging?
-- [ ] Initial Promise API
-  - [ ] Draft API (Hyperdrive, Hypercore, DNS, Corestore)
-  - [ ] Create wrappers over Callback API
-  - [ ] Auto-detect presence of Beaker APIs and use those
-  - [ ] Release V 0.2.0
-- [ ] Demo reusing logic between Beaker and Node / etc (static site generator?)
-- [ ] Integrate with Daemon
-  - [ ] Corestore API
-  - [ ] Wrap RPC client API in Callback API
-  - [ ] Auto-spawn the daemon
-  - [ ] Have web use existing implementation
-  - [ ] Update Cabal with new Daemon-based code
-- [ ] Update API / Integration based on feedback
-- [ ] V 1.0.0
-- [ ] Higher level Peers API?
-- [ ] Electron support with auto-spawning
-- [ ] React-native support with node.js thread running daemon
-- [ ] Web-Daemon
