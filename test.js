@@ -41,6 +41,33 @@ test('Hyperdrive - create drive', (t) => {
   })
 })
 
+test('Hyperdrive - get existing drive', (t) => {
+  const drive = Hyperdrive()
+
+  drive.ready(() => {
+    const existing = Hyperdrive(drive.key)
+
+    t.equal(existing, drive, 'Got existing drive by reference')
+
+    t.end()
+  })
+})
+
+test('Hyperdrive - new drive created after close', (t) => {
+  const drive = Hyperdrive()
+
+  drive.ready(() => {
+    drive.once('close', () => {
+      const existing = Hyperdrive(drive.key)
+
+      t.notEqual(existing, drive, 'Got new drive by reference')
+
+      t.end()
+    })
+    drive.close()
+  })
+})
+
 test('resolveName - resolve and load archive', (t) => {
   t.timeoutAfter(TEST_TIMEOUT)
 
