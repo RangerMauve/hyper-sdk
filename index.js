@@ -2,6 +2,8 @@ const discovery = require('hyperdiscovery')
 const datStorage = require('universal-dat-storage')
 const DatEncoding = require('dat-encoding')
 const crypto = require('hypercore-crypto')
+const RAM = require('random-access-memory')
+const fs = require('fs')
 
 const datDNS = require('dat-dns')
 const hyperdrive = require('hyperdrive')
@@ -12,7 +14,8 @@ const DEFAULT_SWARM_OPTS = {
   extensions: []
 }
 const DEFAULT_DRIVE_OPTS = {
-  sparse: true
+  sparse: true,
+  persist: true
 }
 const DEFAULT_CORE_OPTS = {}
 const DEFAULT_DNS_OPTS = {}
@@ -77,12 +80,33 @@ function SDK ({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts } = {}) {
 
     if (drives.has(stringKey)) return drives.get(stringKey)
 
-    const drive = hyperdrive(storage.getDrive(location), key, opts)
+    const { persist } = opts
+
+    let driveStorage = null
+    try {
+      driveStorage = persist ? storage.getDrive(location) : RAM
+    } catch(e) {
+      if(e.message !== 'Unable to create storage') throw e
+      const { publicKey, secretKey } = crypto.keyPair()
+      fs.writeFileSync(path.join(location, '.dat'), publicKey)
+      key = publicKey
+      location = DatEncoding.encode(publicKey)
+      opts.secretKey = secretKey
+    }
+
+    const drive = hyperdrive(driveStorage, key, opts)
 
     drives.set(stringKey, drive)
 
     drive.ready(() => {
       swarm.add(drive)
+    })
+
+    drive.once('close', () => {
+      const discoveryKey = DatEncoding.encode(drive.discoveryKey)
+      swarm.leave(discoveryKey)
+      swarm._replicatingFeeds.delete(discoveryKey)
+      drives.delete(stringKey)
     })
 
     return drive
@@ -112,12 +136,23 @@ function SDK ({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts } = {}) {
 
     if (cores.has(stringKey)) return cores.get(stringKey)
 
-    const core = hypercore(storage.getCore(location, key, opts))
+    const { persist } = opts
+
+    const coreStorage = persist ? storage.getCore(location) : RAM
+
+    const core = hypercore(coreStorage, key, opts)
 
     cores.set(stringKey, core)
 
     core.ready(() => {
       swarm.add(core)
+    })
+
+    core.once('close', () => {
+      const discoveryKey = DatEncoding.encode(core.discoveryKey)
+      swarm.leave(discoveryKey)
+      swarm._replicatingFeeds.delete(discoveryKey)
+      cores.delete(stringKey)
     })
 
     return core

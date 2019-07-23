@@ -1,7 +1,11 @@
 const SDK = require('./')
 const { Hypercore, Hyperdrive, resolveName, destroy } = SDK()
 
-const archive = Hyperdrive()
+const archive = Hyperdrive(null, {
+  // This archive will disappear after the process exits
+  // This is here so that running the example doesn't clog up your history
+  persist: false
+})
 
 archive.ready(() => {
   const url = `dat://${archive.key.toString('hex')}`
@@ -17,9 +21,11 @@ archive.ready(() => {
 })
 
 resolveName('dat://beakerbrowser.com', (err, url) => {
+  if (err) throw err
   const archive = Hyperdrive(url)
 
   archive.readFile('/dat.json', 'utf8', (err, data) => {
+    if (err) throw err
     console.log(`Beaker's dat.json is ${data}`)
   })
 })
@@ -32,30 +38,30 @@ reallyReady(someArchive, () => {
   someArchive.readdir('/', console.log)
 })
 
-function reallyReady(archive, cb) {
+function reallyReady (archive, cb) {
   let wasReady = false
-  archive.once('update', tryReady)
-  archive.readdir('/', function(e) {
-    if(e) return
+  archive.metadata.once('sync', tryReady)
+  archive.readdir('/', function (e) {
+    if (e) return
     console.log('Already loaded metadata?')
     wasReady = true
     cb()
   })
 
-  function tryReady() {
-    if(wasReady) return
+  function tryReady () {
+    if (wasReady) return
     console.log('Got an append event so it must be loaded')
     wasReady = true
     cb()
   }
 }
 
-
 // Create a hypercore
 // Check out the hypercore docs for what you can do with it
 // https://github.com/mafintosh/hypercore
 const myCore = Hypercore(null, {
-  valueEncoding: 'json'
+  valueEncoding: 'json',
+  persist: false
 })
 
 // Add some data to it
@@ -78,8 +84,11 @@ myCore.append(JSON.stringify({
   discoveryCore.on('extension', (type, message) => {
     console.log('Got extension message', type, message)
     if (type !== 'discovery') return
+    discoveryCore.close()
+
     const otherCore = new Hypercore(message, {
-      valueEncoding: 'json'
+      valueEncoding: 'json',
+      persist: false
     })
 
     // Render the peer's data from their core
@@ -93,7 +102,9 @@ const hypertrie = require('hypertrie')
 // Check out what you can do with hypertrie from there:
 // https://github.com/mafintosh/hypertrie
 const trie = hypertrie(null, {
-  feed: new Hypercore()
+  feed: new Hypercore(null, {
+    persist: false
+  })
 })
 
 trie.put('key', 'value', () => {

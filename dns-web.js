@@ -1,4 +1,4 @@
-
+/* global fetch */
 // TODO: Persist to local storage
 
 const DEFAULT_DNS_PROXY = 'gateway.mauve.moe'

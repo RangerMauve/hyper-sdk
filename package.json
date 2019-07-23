@@ -34,6 +34,7 @@
     "hypercore-crypto": "^1.0.0",
     "hyperdiscovery": "^10.0.0",
     "hyperdrive": "^9.15.0",
+    "random-access-memory": "^3.1.1",
     "universal-dat-storage": "^1.2.1"
   },
   "devDependencies": {
