@@ -1,5 +1,5 @@
 const SDK = require('../')
-const { Hypercore, Hyperdrive, resolveName, destroy } = SDK()
+const { Hypercore, Hyperdrive, resolveName, deleteStorage, destroy } = SDK()
 
 const archive = Hyperdrive(null, {
   // This archive will disappear after the process exits
@@ -27,6 +27,14 @@ resolveName('dat://beakerbrowser.com', (err, url) => {
   archive.readFile('/dat.json', 'utf8', (err, data) => {
     if (err) throw err
     console.log(`Beaker's dat.json is ${data}`)
+
+    archive.close((err) => {
+      if (err) throw err
+      deleteStorage(archive.key, (e) => {
+        if (e) throw e
+        console.log('Deleted beaker storage')
+      })
+    })
   })
 })
 
@@ -40,11 +48,11 @@ reallyReady(someArchive, () => {
 
 // This make sure you sync up with peers before trying to do anything with the archive
 function reallyReady (archive, cb) {
-  if(archive.metadata.peers.length) {
-    archive.metadata.update({ifAvailable: true}, cb)
+  if (archive.metadata.peers.length) {
+    archive.metadata.update({ ifAvailable: true }, cb)
   } else {
     archive.metadata.once('peer-add', () => {
-      archive.metadata.update({ifAvailable: true}, cb)
+      archive.metadata.update({ ifAvailable: true }, cb)
     })
   }
 }

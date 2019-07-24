@@ -4,6 +4,7 @@ const DatEncoding = require('dat-encoding')
 const crypto = require('hypercore-crypto')
 const RAM = require('random-access-memory')
 const fs = require('fs')
+const path = require('path')
 
 const datDNS = require('dat-dns')
 const hyperdrive = require('hyperdrive')
@@ -56,6 +57,10 @@ function SDK ({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts } = {}) {
     return dns.resolveName(url, cb)
   }
 
+  function deleteStorage (key, cb) {
+    storage.delete(key, cb)
+  }
+
   function Hyperdrive (location, opts) {
     opts = Object.assign({}, DEFAULT_DRIVE_OPTS, driveOpts, opts)
 
@@ -85,13 +90,17 @@ function SDK ({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts } = {}) {
     let driveStorage = null
     try {
       driveStorage = persist ? storage.getDrive(location) : RAM
-    } catch(e) {
-      if(e.message !== 'Unable to create storage') throw e
+    } catch (e) {
+      if (e.message !== 'Unable to create storage') throw e
+
+      // If the folder isn't a dat archive. Turn it into one.
       const { publicKey, secretKey } = crypto.keyPair()
       fs.writeFileSync(path.join(location, '.dat'), publicKey)
       key = publicKey
       location = DatEncoding.encode(publicKey)
       opts.secretKey = secretKey
+
+      driveStorage = persist ? storage.getDrive(location) : RAM
     }
 
     const drive = hyperdrive(driveStorage, key, opts)
@@ -162,6 +171,7 @@ function SDK ({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts } = {}) {
     Hyperdrive,
     Hypercore,
     resolveName,
+    deleteStorage,
     destroy
   }
 }

@@ -21,8 +21,8 @@ The Dat SDK combines the lower level pieces of the Dat ecosystem into high level
 ## API/Examples
 
 ```
-const SDK = require('dat-sdk')
-const { Hypercore, Hyperdrive, resolveName, destroy } = SDK()
+const SDK = require('../')
+const { Hypercore, Hyperdrive, resolveName, deleteStorage, destroy } = SDK()
 
 const archive = Hyperdrive(null, {
   // This archive will disappear after the process exits
@@ -50,6 +50,14 @@ resolveName('dat://beakerbrowser.com', (err, url) => {
   archive.readFile('/dat.json', 'utf8', (err, data) => {
     if (err) throw err
     console.log(`Beaker's dat.json is ${data}`)
+
+    archive.close((err) => {
+      if (err) throw err
+      deleteStorage(archive.key, (e) => {
+        if (e) throw e
+        console.log('Deleted beaker storage')
+      })
+    })
   })
 })
 
@@ -61,21 +69,14 @@ reallyReady(someArchive, () => {
   someArchive.readdir('/', console.log)
 })
 
+// This make sure you sync up with peers before trying to do anything with the archive
 function reallyReady (archive, cb) {
-  let wasReady = false
-  archive.metadata.once('sync', tryReady)
-  archive.readdir('/', function (e) {
-    if (e) return
-    console.log('Already loaded metadata?')
-    wasReady = true
-    cb()
-  })
-
-  function tryReady () {
-    if (wasReady) return
-    console.log('Got an append event so it must be loaded')
-    wasReady = true
-    cb()
+  if (archive.metadata.peers.length) {
+    archive.metadata.update({ ifAvailable: true }, cb)
+  } else {
+    archive.metadata.once('peer-add', () => {
+      archive.metadata.update({ ifAvailable: true }, cb)
+    })
   }
 }
 
