@@ -95,3 +95,17 @@ test('Hypercore - create', (t) => {
     t.end()
   })
 })
+
+test('Hypercore - load', (t) => {
+  t.timeoutAfter(TEST_TIMEOUT)
+
+  const key = '60c525b5589a5099aa3610a8ee550dcd454c3e118f7ac93b7d41b6b850272330'
+
+  const core = Hypercore(key)
+
+  core.ready(() => {
+    t.equal(core.key.toString('hex'), key, 'loaded key')
+
+    t.end()
+  })
+})
