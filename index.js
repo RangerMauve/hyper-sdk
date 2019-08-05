@@ -50,7 +50,7 @@ function SDK ({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts } = {}) {
       core.close()
     }
 
-    swarm.close(cb)
+    swarm.close().then(cb, cb)
   }
 
   function resolveName (url, cb) {
