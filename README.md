@@ -151,21 +151,22 @@ trie.put('key', 'value', () => {
   - [x] Node.js compat (tests)
   - [x] Web compat (tests)
   - [x] Release v0.1.0
-- [ ] Update callback API based on feedback
-  - [ ] Better ability to work with folders
-  - [ ] Ability to close drives
-  - [ ] Check that hypercore replication is working
+- [x] Update callback API based on feedback
+  - [x] Better ability to work with folders
+  - [x] Ability to close drives
+  - [x] Check that hypercore replication is working
+  - [x] Release v0.2.0
 - [ ] Initial Beaker integration
   - [ ] [Wrap](https://github.com/RangerMauve/datarchive-to-hyperdrive) DatArchive with hyperdrive
   - [ ] Wrap resolveName API with Beaker APIs
   - [ ] Test that hypercore still works using web storage / proxying
   - [ ] Make sure tests work in Node / Web / Beaker
-  - Release v0.2.0
+  - [ ] Release v0.3.0
 - [ ] Initial Promise API
   - [ ] Draft API (Hyperdrive, Hypercore, DNS, Corestore)
   - [ ] Create wrappers over Callback API
   - [ ] Auto-detect presence of Beaker APIs and use those
-  - [ ] Release V 0.2.0
+  - [ ] Release v0.4.0
 - [ ] Demo reusing logic between Beaker and Node / etc (static site generator?)
 - [ ] Integrate with Daemon
   - [ ] Corestore API
