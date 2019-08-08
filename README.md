@@ -156,17 +156,23 @@ trie.put('key', 'value', () => {
   - [x] Ability to close drives
   - [x] Check that hypercore replication is working
   - [x] Release v0.2.0
+- [ ] New Hyperdrive and Hyperswarm and Corestore
+  - [ ] Add corestore for replication
+  - [ ] virtual-corestore API
+  - [ ] Use virtual Corestore for hyperdrive and hypercore and a new corestore API
+  - [ ] Update discovery-swarm-web to use hyperswarm
+  - [ ] Release
 - [ ] Initial Beaker integration
   - [ ] [Wrap](https://github.com/RangerMauve/datarchive-to-hyperdrive) DatArchive with hyperdrive
   - [ ] Wrap resolveName API with Beaker APIs
   - [ ] Test that hypercore still works using web storage / proxying
   - [ ] Make sure tests work in Node / Web / Beaker
-  - [ ] Release v0.3.0
+  - [ ] Release
 - [ ] Initial Promise API
   - [ ] Draft API (Hyperdrive, Hypercore, DNS, Corestore)
   - [ ] Create wrappers over Callback API
   - [ ] Auto-detect presence of Beaker APIs and use those
-  - [ ] Release v0.4.0
+  - [ ] Release
 - [ ] Demo reusing logic between Beaker and Node / etc (static site generator?)
 - [ ] Integrate with Daemon
   - [ ] Corestore API
@@ -174,6 +180,7 @@ trie.put('key', 'value', () => {
   - [ ] Auto-spawn the daemon
   - [ ] Have web use existing implementation
   - [ ] Update Cabal with new Daemon-based code
+  - [ ] Release
 - [ ] Update API / Integration based on feedback
 - [ ] V 1.0.0
 - [ ] Higher level Peers API?
