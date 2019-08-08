@@ -1,10 +1,14 @@
+const path = require('path')
+
+// This is a dirty hack for browserify to work. 😅
+if(!path.posix) path.posix = path
+
 const discovery = require('hyperdiscovery')
 const datStorage = require('universal-dat-storage')
 const DatEncoding = require('dat-encoding')
 const crypto = require('hypercore-crypto')
 const RAM = require('random-access-memory')
 const fs = require('fs')
-const path = require('path')
 
 const datDNS = require('dat-dns')
 const hyperdrive = require('hyperdrive')
