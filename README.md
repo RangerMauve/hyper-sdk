@@ -27,7 +27,11 @@ const { Hypercore, Hyperdrive, resolveName, deleteStorage, destroy } = SDK()
 const archive = Hyperdrive(null, {
   // This archive will disappear after the process exits
   // This is here so that running the example doesn't clog up your history
-  persist: false
+  persist: false,
+  // storage can be set to an instance of `random-access-*`
+  // otherwise it defaults to `random-access-web` in the browser
+  // and `random-access-file` in node
+  storage: null
 })
 
 archive.ready(() => {

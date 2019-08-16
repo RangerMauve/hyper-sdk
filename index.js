@@ -93,7 +93,7 @@ function SDK ({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts } = {}) {
 
     let driveStorage = null
     try {
-      driveStorage = persist ? storage.getDrive(location) : RAM
+      driveStorage = persist ? opts.storage || storage.getDrive(location) : RAM
     } catch (e) {
       if (e.message !== 'Unable to create storage') throw e
 
@@ -104,7 +104,7 @@ function SDK ({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts } = {}) {
       location = DatEncoding.encode(publicKey)
       opts.secretKey = secretKey
 
-      driveStorage = persist ? storage.getDrive(location) : RAM
+      driveStorage = persist ? opts.storage || storage.getDrive(location) : RAM
     }
 
     const drive = hyperdrive(driveStorage, key, opts)
