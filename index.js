@@ -1,7 +1,7 @@
 const path = require('path')
 
 // This is a dirty hack for browserify to work. 😅
-if(!path.posix) path.posix = path
+if (!path.posix) path.posix = path
 
 const discovery = require('hyperdiscovery')
 const datStorage = require('universal-dat-storage')
@@ -93,7 +93,13 @@ function SDK ({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts } = {}) {
 
     let driveStorage = null
     try {
-      driveStorage = persist ? opts.storage(location) || storage.getDrive(location) : RAM
+      if (!persist) {
+        driveStorage = RAM
+      } else if (opts.storage) {
+        driveStorage = opts.storage(location)
+      } else {
+        driveStorage = storage.getDrive(location)
+      }
     } catch (e) {
       if (e.message !== 'Unable to create storage') throw e
 
@@ -104,7 +110,11 @@ function SDK ({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts } = {}) {
       location = DatEncoding.encode(publicKey)
       opts.secretKey = secretKey
 
-      driveStorage = persist ? opts.storage(location) || storage.getDrive(location) : RAM
+      if (opts.storage) {
+        driveStorage = opts.storage(location)
+      } else {
+        driveStorage = storage.getDrive(location)
+      }
     }
 
     const drive = hyperdrive(driveStorage, key, opts)
