@@ -32,6 +32,7 @@
     "dat-dns": "^4.0.0",
     "dat-encoding": "^5.0.1",
     "dom-event-target": "^1.0.0",
+    "global": "^4.4.0",
     "hex-to-32": "^2.0.0",
     "hypercore": "^7.5.0",
     "hypercore-crypto": "^1.0.0",

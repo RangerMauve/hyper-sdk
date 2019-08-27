@@ -18,6 +18,28 @@ The Dat SDK combines the lower level pieces of the Dat ecosystem into high level
   - React-Native?
   - Electron?
 
+## API/Examples (Promise)
+
+```js
+// Auto-detects sane defaults based on your environment
+// Uses Beaker's APIs if they are if they are available
+// DatArchive is the same as Beaker
+// https://beakerbrowser.com/docs/apis/dat
+const {DatArchive} = require('dat-sdk/auto')
+
+const archive = await DatArchive.load('dat://dat.foundation')
+
+const someData = await DatArchive.readFile('/dat.json', 'utf8')
+
+console.log('Dat foundation dat.json:', someData)
+
+const myArchive = await DatArchive.create({
+  title: 'My Archive'
+})
+
+await myArchive.writeFile('/example.txt', 'Hello World!')
+```
+
 ## API/Examples (Callbacks)
 
 ```js
@@ -160,6 +182,10 @@ trie.put('key', 'value', () => {
   - [x] Ability to close drives
   - [x] Check that hypercore replication is working
   - [x] Release v0.2.0
+- [x] Initial Promise API / Beaker support
+  - [x] Implement DatArchive API over CB based SDK
+  - [x] Expose 'auto' module that automatically configures the SDK
+  - [x] Release
 - [ ] New Hyperdrive and Hyperswarm and Corestore
   - [ ] Add corestore for replication
   - [ ] virtual-corestore API
@@ -172,8 +198,8 @@ trie.put('key', 'value', () => {
   - [ ] Test that hypercore still works using web storage / proxying
   - [ ] Make sure tests work in Node / Web / Beaker
   - [ ] Release
-- [ ] Initial Promise API
-  - [ ] Draft API (Hyperdrive, Hypercore, DNS, Corestore)
+- [ ] Promise API for new data types
+  - [ ] Draft API (Hypercore, DNS, Corestore)
   - [ ] Create wrappers over Callback API
   - [ ] Auto-detect presence of Beaker APIs and use those
   - [ ] Release

@@ -64,7 +64,7 @@ module.exports = function SDK (opts) {
     return new Promise((resolve, reject) => {
       function cb (err, result) {
         // Ignore errors saying we're up to date
-        if(err && err.message !== 'No update available from peers') reject(err)
+        if (err && err.message !== 'No update available from peers') reject(err)
         else resolve(result)
       }
       if (archive.metadata.peers.length) {
@@ -152,16 +152,6 @@ module.exports = function SDK (opts) {
         this._checkout = version ? archive.checkout(version) : archive
         this.url = this.url || `dat://${archive.key.toString('hex')}`
         this._loadPromise = null
-
-        // if (!archive.writable && !archive.metadata.length) {
-        //   // wait to receive a first update
-        //   await new Promise((resolve, reject) => {
-        //     archive.metadata.update(err => {
-        //       if (err) reject(err)
-        //       else resolve()
-        //     })
-        //   })
-        // }
 
         var s = toEventTarget(pda.createNetworkActivityStream(this._archive))
 
@@ -462,8 +452,9 @@ module.exports = function SDK (opts) {
       return archive
     }
 
-    static async create ({ title, description, type, author } = {}) {
-      const archive = new DatArchive(null)
+    static async create (options = {}) {
+      const { title, description, type, author } = options
+      const archive = new DatArchive(null, options)
 
       await archive._loadPromise
 
