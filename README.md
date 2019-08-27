@@ -1,5 +1,7 @@
 # sdk
-The official Dat SDK (WIP)
+The official Dat SDK
+
+[<img src="https://datproject.github.io/design/downloads/dat-logo.png" align="right" width="140">][Dat Project]
 
 ## Why use this?
 
@@ -217,3 +219,5 @@ trie.put('key', 'value', () => {
 - [ ] Electron support with auto-spawning
 - [ ] React-native support with node.js thread running daemon
 - [ ] Web-Daemon
+
+[Dat Project]: https://dat.foundation

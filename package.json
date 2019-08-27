@@ -1,7 +1,7 @@
 {
   "name": "dat-sdk",
   "version": "0.2.2",
-  "description": "The official Dat SDK (WIP)",
+  "description": "The official Dat SDK",
   "main": "index.js",
   "scripts": {
     "test": "node test && node test-promise",
