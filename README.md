@@ -18,7 +18,7 @@ The Dat SDK combines the lower level pieces of the Dat ecosystem into high level
   - React-Native?
   - Electron?
 
-## API/Examples
+## API/Examples (Callbacks)
 
 ```js
 const SDK = require('../')
