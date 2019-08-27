@@ -1,6 +1,8 @@
 const SDK = require('../')
 const { Hypercore, Hyperdrive, resolveName, deleteStorage, destroy } = SDK()
 
+process.once('SIGINT', destroy)
+
 const archive = Hyperdrive(null, {
   // This archive will disappear after the process exits
   // This is here so that running the example doesn't clog up your history
