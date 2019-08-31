@@ -124,18 +124,21 @@ module.exports = function SDK (opts) {
 
         let archive = null
 
+        const localOptions = {
+          persist: false
+        }
+
         if (key) {
-          if (!options.persist) {
-            options.persist = false
-          }
           if (isLocal(key)) {
-            options.persist = true
+            localOptions.persist = true
           }
-          archive = Hyperdrive(key, options)
+          const finalOptions = Object.assign(localOptions, options)
+          archive = Hyperdrive(key, finalOptions)
         } else {
-          archive = Hyperdrive(null, {
-            persist: true
-          })
+          localOptions.persist = true
+          const finalOptions = Object.assign(localOptions, options)
+
+          archive = Hyperdrive(null, finalOptions)
           addLocal(archive.metadata.key.toString('hex'))
         }
 
@@ -463,8 +466,8 @@ module.exports = function SDK (opts) {
       return archive
     }
 
-    static async load (url) {
-      const archive = new DatArchive(url)
+    static async load (url, options) {
+      const archive = new DatArchive(url, options)
 
       await archive._loadPromise
 
