@@ -17,7 +17,7 @@ const TEST_TIMEOUT = 10 * 1000
 
 test.onFinish(destroy)
 
-test('Hyperdrive - load drive', (t) => {
+test.skip('Hyperdrive - load drive', (t) => {
   t.timeoutAfter(TEST_TIMEOUT)
 
   const drive = Hyperdrive(DATPROJECT_KEY)
@@ -68,7 +68,7 @@ test('Hyperdrive - new drive created after close', (t) => {
   })
 })
 
-test('resolveName - resolve and load archive', (t) => {
+test.skip('resolveName - resolve and load archive', (t) => {
   t.timeoutAfter(TEST_TIMEOUT)
 
   resolveName('dat://dat.foundation', (err, resolved) => {
@@ -84,7 +84,7 @@ test('resolveName - resolve and load archive', (t) => {
   })
 })
 
-test('Hypercore - create', (t) => {
+test.skip('Hypercore - create', (t) => {
   t.timeoutAfter(TEST_TIMEOUT)
 
   const core = Hypercore()
@@ -96,7 +96,7 @@ test('Hypercore - create', (t) => {
   })
 })
 
-test('Hypercore - load', (t) => {
+test.skip('Hypercore - load', (t) => {
   t.timeoutAfter(TEST_TIMEOUT)
 
   const key = '60c525b5589a5099aa3610a8ee550dcd454c3e118f7ac93b7d41b6b850272330'

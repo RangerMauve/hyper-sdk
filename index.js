@@ -3,7 +3,7 @@ const path = require('path')
 // This is a dirty hack for browserify to work. 😅
 if (!path.posix) path.posix = path
 
-const discovery = require('hyperdiscovery')
+const SwarmNetworker = require('corestore-swarm-networking')
 const datStorage = require('universal-dat-storage')
 const DatEncoding = require('dat-encoding')
 const crypto = require('hypercore-crypto')
@@ -12,7 +12,7 @@ const fs = require('fs')
 
 const datDNS = require('dat-dns')
 const hyperdrive = require('hyperdrive')
-const hypercore = require('hypercore')
+const corestore = require('corestore')
 
 const DEFAULT_STORAGE_OPTS = {}
 const DEFAULT_SWARM_OPTS = {
@@ -24,13 +24,27 @@ const DEFAULT_DRIVE_OPTS = {
 }
 const DEFAULT_CORE_OPTS = {}
 const DEFAULT_DNS_OPTS = {}
+const DEFAULT_CORESTORE_OPTS = {}
 
 module.exports = SDK
 
-function SDK ({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts } = {}) {
-  const storage = datStorage(Object.assign({}, DEFAULT_STORAGE_OPTS, storageOpts))
-  const swarm = discovery(Object.assign({}, DEFAULT_SWARM_OPTS, swarmOpts))
+function SDK ({
+  storageOpts,
+  swarmOpts,
+  driveOpts,
+  coreOpts,
+  dnsOpts,
+  corestoreOpts,
+} = {}) {
   const dns = datDNS(Object.assign({}, DEFAULT_DNS_OPTS, dnsOpts))
+
+  const storage = datStorage(Object.assign({}, DEFAULT_STORAGE_OPTS, storageOpts))
+
+  const store = corestore(storage.getCoreStore('cores'), Object.assign({}, DEFAULT_CORE_OPTS, corestoreOpts))
+
+  const swarm = new SwarmNetworker(store, Object.assign({}, DEFAULT_SWARM_OPTS, swarmOpts))
+
+  let currentExtensions = swarmOpts.extensions || []
 
   // Track list of hyperdrives
   const drives = new Map()
@@ -38,11 +52,13 @@ function SDK ({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts } = {}) {
 
   function addExtensions (extensions) {
     if (!extensions || !extensions.length) return
-    // TODO: This has code smell
-    const currentExtensions = swarm._opts.extensions || []
     const finalSet = new Set([...currentExtensions, ...extensions])
 
-    swarm._opts.extensions = [...finalSet]
+    currentExtensions = [...finalSet]
+
+    // Modify all new extensions on the default core
+    // TODO: Dynamic extension configuration
+    if (store.defaultCore) store.defaultCore.extensions = currentExtensions
   }
 
   function destroy (cb) {
@@ -69,6 +85,8 @@ function SDK ({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts } = {}) {
     opts = Object.assign({}, DEFAULT_DRIVE_OPTS, driveOpts, opts)
 
     addExtensions(opts.extensions)
+
+    opts.extensions = currentExtensions
 
     let key = null
 
