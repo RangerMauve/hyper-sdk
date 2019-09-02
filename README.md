@@ -160,8 +160,9 @@ const trie = hypertrie(null, {
 })
 
 trie.put('key', 'value', () => {
-  trie.get('key', (value) => {
-    console.log('Loaded value from trie:', value)
+  trie.get('key', (err, node) => {
+    console.log('Got key: ', node.key)
+    console.log('Loaded value from trie: ', node.value)
   })
 })
 
