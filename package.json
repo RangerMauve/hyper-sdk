@@ -4,8 +4,8 @@
   "description": "The official Dat SDK",
   "main": "index.js",
   "scripts": {
-    "test": "node test && node test-promise",
-    "build-test": "browserify -d test.js > test-bundle.js"
+    "test": "node ./test/basic && node ./test/promise && node ./test/cross-swarm",
+    "build-test": "browserify -d ./test/test.js > ./text/test-bundle.js"
   },
   "repository": {
     "type": "git",

@@ -36,19 +36,25 @@ function SDK ({
   dnsOpts,
   corestoreOpts,
 } = {}) {
-  const dns = datDNS(Object.assign({}, DEFAULT_DNS_OPTS, dnsOpts))
+  const finalDnsOpts = Object.assign({}, DEFAULT_DNS_OPTS, dnsOpts)
+  const dns = datDNS(finalDnsOpts)
 
-  const storage = datStorage(Object.assign({}, DEFAULT_STORAGE_OPTS, storageOpts))
+  const finalStorageOpts = Object.assign({}, DEFAULT_STORAGE_OPTS, storageOpts)
+  const storage = datStorage(finalStorageOpts)
 
-  const store = corestore(storage.getCoreStore('cores'), Object.assign({}, DEFAULT_CORE_OPTS, corestoreOpts))
+  const finalCorestoreOpts = Object.assign({}, DEFAULT_CORE_OPTS, corestoreOpts)
+  const store = corestore(storage.getCoreStore('cores'), finalCorestoreOpts)
 
-  const swarm = new SwarmNetworker(store, Object.assign({}, DEFAULT_SWARM_OPTS, swarmOpts))
+  const finalSwarmOpts = Object.assign({}, DEFAULT_SWARM_OPTS, swarmOpts)
+  const swarm = new SwarmNetworker(store, finalSwarmOpts)
 
-  let currentExtensions = swarmOpts.extensions || []
+  let currentExtensions = finalSwarmOpts.extensions || []
 
   // Track list of hyperdrives
   const drives = new Map()
   const cores = new Map()
+
+  swarm.listen()
 
   function addExtensions (extensions) {
     if (!extensions || !extensions.length) return
@@ -140,13 +146,12 @@ function SDK ({
     drives.set(stringKey, drive)
 
     drive.ready(() => {
-      swarm.add(drive)
+      swarm.seed(drive.discoveryKey)
     })
 
     drive.once('close', () => {
       const discoveryKey = DatEncoding.encode(drive.discoveryKey)
-      swarm.leave(discoveryKey)
-      swarm._replicatingFeeds.delete(discoveryKey)
+      swarm.unseed(discoveryKey)
       drives.delete(stringKey)
     })
 
@@ -186,13 +191,12 @@ function SDK ({
     cores.set(stringKey, core)
 
     core.ready(() => {
-      swarm.add(core)
+      swarm.seed(core.discoveryKey)
     })
 
     core.once('close', () => {
       const discoveryKey = DatEncoding.encode(core.discoveryKey)
-      swarm.leave(discoveryKey)
-      swarm._replicatingFeeds.delete(discoveryKey)
+      swarm.unseed(discoveryKey)
       cores.delete(stringKey)
     })
 
