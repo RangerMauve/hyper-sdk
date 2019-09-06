@@ -8,13 +8,15 @@ const datStorage = require('universal-dat-storage')
 const DatEncoding = require('dat-encoding')
 const crypto = require('hypercore-crypto')
 const RAM = require('random-access-memory')
-const fs = require('fs')
 
 const datDNS = require('dat-dns')
 const hyperdrive = require('hyperdrive')
+const hypercore = require('hypercore')
 const corestore = require('corestore')
 
-const DEFAULT_STORAGE_OPTS = {}
+const DEFAULT_STORAGE_OPTS = {
+  persist: true
+}
 const DEFAULT_SWARM_OPTS = {
   extensions: []
 }
@@ -34,18 +36,25 @@ function SDK ({
   driveOpts,
   coreOpts,
   dnsOpts,
-  corestoreOpts,
+  corestoreOpts
 } = {}) {
   const finalDnsOpts = Object.assign({}, DEFAULT_DNS_OPTS, dnsOpts)
+  const finalStorageOpts = Object.assign({}, DEFAULT_STORAGE_OPTS, storageOpts)
+  const finalCorestoreOpts = Object.assign({}, DEFAULT_CORESTORE_OPTS, corestoreOpts)
+  const finalSwarmOpts = Object.assign({}, DEFAULT_SWARM_OPTS, swarmOpts)
+  const finalDriveOpts = Object.assign({}, DEFAULT_DRIVE_OPTS, driveOpts)
+
   const dns = datDNS(finalDnsOpts)
 
-  const finalStorageOpts = Object.assign({}, DEFAULT_STORAGE_OPTS, storageOpts)
-  const storage = datStorage(finalStorageOpts)
+  let storage = RAM
+  if(finalStorageOpts.persist) {
+    storage = datStorage(finalStorageOpts)
+  } else {
+    driveOpts.persist = false
+  }
 
-  const finalCorestoreOpts = Object.assign({}, DEFAULT_CORE_OPTS, corestoreOpts)
   const store = corestore(storage.getCoreStore('cores'), finalCorestoreOpts)
 
-  const finalSwarmOpts = Object.assign({}, DEFAULT_SWARM_OPTS, swarmOpts)
   const swarm = new SwarmNetworker(store, finalSwarmOpts)
 
   let currentExtensions = finalSwarmOpts.extensions || []
@@ -84,11 +93,25 @@ function SDK ({
   }
 
   function deleteStorage (key, cb) {
-    storage.delete(key, cb)
+    cb(new Error('TODO: Cannot delete storage yet'))
+  }
+
+  // This is a gross hack that lets us use custom storage for cores
+  // We need to add feeds to the store manually so that they will be replicated
+  function addFeed (feed) {
+    console.log('adding feed')
+    store.emit('feed', feed)
+    store.cores.set(DatEncoding.encode(feed.key), feed)
+    store.cores.set(DatEncoding.encode(feed.discoveryKey), feed)
+
+    for (let { stream, opts } of store.replicationStreams) {
+      store._replicateCore(feed, stream, { ...opts })
+    }
   }
 
   function Hyperdrive (location, opts) {
-    opts = Object.assign({}, DEFAULT_DRIVE_OPTS, driveOpts, opts)
+    opts = Object.assign({}, finalDriveOpts, opts)
+    console.log('drive opts', opts)
 
     addExtensions(opts.extensions)
 
@@ -103,42 +126,22 @@ function SDK ({
       opts.secretKey = secretKey
     }
 
-    try {
-      key = DatEncoding.decode(location)
-    } catch (e) {
-      // Location must be relative path
-    }
+    key = DatEncoding.decode(location)
 
-    const stringKey = location.toString('hex')
+    const stringKey = key.toString('hex')
 
     if (drives.has(stringKey)) return drives.get(stringKey)
 
     const { persist } = opts
 
-    let driveStorage = null
-    try {
-      if (!persist) {
-        driveStorage = RAM
-      } else if (opts.storage) {
-        driveStorage = opts.storage(location)
-      } else {
-        driveStorage = storage.getDrive(location)
-      }
-    } catch (e) {
-      if (e.message !== 'Unable to create storage') throw e
-
-      // If the folder isn't a dat archive. Turn it into one.
-      const { publicKey, secretKey } = crypto.keyPair()
-      fs.writeFileSync(path.join(location, '.dat'), publicKey)
-      key = publicKey
-      location = DatEncoding.encode(publicKey)
-      opts.secretKey = secretKey
-
-      if (opts.storage) {
-        driveStorage = opts.storage(location)
-      } else {
-        driveStorage = storage.getDrive(location)
-      }
+    let driveStorage = store
+    let shouldAddToStore = false
+    if (!persist) {
+      driveStorage = RAM
+      shouldAddToStore = true
+    } else if (opts.storage) {
+      driveStorage = opts.storage(location)
+      shouldAddToStore = true
     }
 
     const drive = hyperdrive(driveStorage, key, opts)
@@ -146,6 +149,9 @@ function SDK ({
     drives.set(stringKey, drive)
 
     drive.ready(() => {
+      if (shouldAddToStore) {
+        addFeed(drive.metadata)
+      }
       swarm.seed(drive.discoveryKey)
     })
 
@@ -170,27 +176,34 @@ function SDK ({
       key = publicKey
       location = DatEncoding.encode(publicKey)
       opts.secretKey = secretKey
-    }
-
-    try {
+    } else {
       key = DatEncoding.decode(location)
-    } catch (e) {
-      // Location must be relative path
     }
 
-    const stringKey = location.toString('hex')
+    opts.key = key
+
+    const stringKey = key.toString('hex')
 
     if (cores.has(stringKey)) return cores.get(stringKey)
 
     const { persist } = opts
 
-    const coreStorage = persist ? storage.getCore(location) : RAM
+    let core = null
+    let shouldAddToStore = false
 
-    const core = hypercore(coreStorage, key, opts)
+    if (persist) {
+      core = store.get(opts)
+    } else {
+      core = hypercore(RAM, key, opts)
+      shouldAddToStore = true
+    }
 
     cores.set(stringKey, core)
 
     core.ready(() => {
+      if (shouldAddToStore) {
+        addFeed(core)
+      }
       swarm.seed(core.discoveryKey)
     })
 

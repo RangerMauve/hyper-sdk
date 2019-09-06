@@ -84,7 +84,7 @@ test.skip('resolveName - resolve and load archive', (t) => {
   })
 })
 
-test.skip('Hypercore - create', (t) => {
+test('Hypercore - create', (t) => {
   t.timeoutAfter(TEST_TIMEOUT)
 
   const core = Hypercore()

@@ -36,7 +36,7 @@
     "dom-event-target": "^1.0.0",
     "global": "^4.4.0",
     "hex-to-32": "^2.0.0",
-    "hypercore": "^7.5.0",
+    "hypercore": "^7.6.1",
     "hypercore-crypto": "^1.0.0",
     "hyperdiscovery": "^10.0.0",
     "hyperdrive": "^10.2.0",

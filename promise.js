@@ -68,12 +68,12 @@ module.exports = function SDK (opts) {
         else resolve(result)
       }
       if (archive.metadata.peers.length) {
-        archive.metadata.update({ ifAvailable: true }, cb)
+        archive.metadata.update({ ifAvailable: true, minLength: 0 }, cb)
       } else {
         const timeout = setTimeout(cb, READY_DELAY)
         archive.metadata.once('peer-add', () => {
           clearTimeout(timeout)
-          archive.metadata.update({ ifAvailable: true }, cb)
+          archive.metadata.update({ ifAvailable: true, minLength: 0 }, cb)
         })
       }
     })
@@ -463,8 +463,8 @@ module.exports = function SDK (opts) {
       return archive
     }
 
-    static async load (url) {
-      const archive = new DatArchive(url)
+    static async load (url, opts) {
+      const archive = new DatArchive(url, opts)
 
       await archive._loadPromise
 
