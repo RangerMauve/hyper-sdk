@@ -22,7 +22,10 @@ const DEFAULT_DRIVE_OPTS = {
   sparse: true,
   persist: true
 }
-const DEFAULT_CORE_OPTS = {}
+const DEFAULT_CORE_OPTS = {
+	sparse: true,
+	persist: true
+}
 const DEFAULT_DNS_OPTS = {}
 
 module.exports = SDK
