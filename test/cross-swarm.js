@@ -19,6 +19,8 @@ test('cross-swarm: create and load archive', async (t) => {
 
     const copy = await DatArchive2.load(original.url, { persist: false })
 
+    t.equal(original.url, copy.url, 'loaded correct archive')
+
     t.pass('loaded copy archive')
 
     const read = await copy.readFile(FILE_LOCATION, 'utf8')

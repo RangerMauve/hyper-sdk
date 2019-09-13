@@ -151,6 +151,7 @@ function SDK ({
     drive.ready(() => {
       if (shouldAddToStore) {
         addFeed(drive.metadata)
+        drive.on('content-feed', addFeed)
       }
       swarm.seed(drive.discoveryKey)
     })

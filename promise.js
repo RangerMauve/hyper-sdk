@@ -63,17 +63,20 @@ module.exports = function SDK (opts) {
   async function reallyReady (archive) {
     return new Promise((resolve, reject) => {
       function cb (err, result) {
+        console.log('got update', err, result)
         // Ignore errors saying we're up to date
         if (err && err.message !== 'No update available from peers') reject(err)
         else resolve(result)
       }
       if (archive.metadata.peers.length) {
-        archive.metadata.update({ ifAvailable: true, minLength: 0 }, cb)
+        console.log('Has peers, waiting for update')
+        archive.metadata.update({ ifAvailable: true, minLength: 1 }, cb)
       } else {
         const timeout = setTimeout(cb, READY_DELAY)
         archive.metadata.once('peer-add', () => {
+          console.log('Got peers, waiting for update')
           clearTimeout(timeout)
-          archive.metadata.update({ ifAvailable: true, minLength: 0 }, cb)
+          archive.metadata.update({ ifAvailable: true, minLength: 1 }, cb)
         })
       }
     })
