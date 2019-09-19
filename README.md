@@ -31,7 +31,7 @@ const {DatArchive} = require('dat-sdk/auto')
 
 const archive = await DatArchive.load('dat://dat.foundation')
 
-const someData = await DatArchive.readFile('/dat.json', 'utf8')
+const someData = await archive.readFile('/dat.json', 'utf8')
 
 console.log('Dat foundation dat.json:', someData)
 
