@@ -163,8 +163,18 @@ function SDK ({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts } = {}) {
     if (cores.has(stringKey)) return cores.get(stringKey)
 
     const { persist } = opts
-
-    const coreStorage = persist ? storage.getCore(location) : RAM
+    let coreStorage = null
+    try {
+      if (!persist) {
+        coreStorage = RAM
+      } else if (opts.storage) {
+        coreStorage = opts.storage(location)
+      } else {
+        coreStorage = storage.getCore(location)
+      }
+    } catch (e) {
+      if (e.message !== 'Unable to create storage') throw e
+    }
 
     const core = hypercore(coreStorage, key, opts)
 
