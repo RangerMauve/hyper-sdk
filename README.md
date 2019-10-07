@@ -53,9 +53,10 @@ const archive = Hyperdrive(null, {
   // This is here so that running the example doesn't clog up your history
   persist: false,
   // storage can be set to an instance of `random-access-*`
+  // const RAI = require('random-access-idb')
   // otherwise it defaults to `random-access-web` in the browser
   // and `random-access-file` in node
-  storage: null
+  storage: null  //storage: RAI
 })
 
 archive.ready(() => {
@@ -113,7 +114,12 @@ function reallyReady (archive, cb) {
 // https://github.com/mafintosh/hypercore
 const myCore = Hypercore(null, {
   valueEncoding: 'json',
-  persist: false
+  persist: false,
+  // storage can be set to an instance of `random-access-*`
+  // const RAI = require('random-access-idb')
+  // otherwise it defaults to `random-access-web` in the browser
+  // and `random-access-file` in node
+  storage: null  // storage: RAI
 })
 
 // Add some data to it
