@@ -23,8 +23,8 @@ const DEFAULT_DRIVE_OPTS = {
   persist: true
 }
 const DEFAULT_CORE_OPTS = {
-	sparse: true,
-	persist: true
+  sparse: true,
+  persist: true
 }
 const DEFAULT_DNS_OPTS = {}
 

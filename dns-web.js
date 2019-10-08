@@ -18,7 +18,11 @@ module.exports = ({
       }
       if (!cb) cb = noop
 
-      const domain = url.slice(DAT_PROTOCOL.length)
+      let domain = url
+
+      if (domain.startsWith(DAT_PROTOCOL)) {
+        domain = url.slice(DAT_PROTOCOL.length)
+      }
 
       if (cache[domain]) {
         if (cb) {

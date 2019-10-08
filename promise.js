@@ -105,7 +105,7 @@ module.exports = function SDK (opts) {
         }
       }
 
-      key = await DatArchive.resolveName(hostname)
+      key = await DatArchive.resolveName(`dat://${hostname}`)
     }
 
     return {
