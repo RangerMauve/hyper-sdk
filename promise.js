@@ -23,7 +23,7 @@ const SDKcb = require('./')
 const API_TIMEOUT = 15 * 1000
 
 // How long to wait to get peers / sync with them
-const READY_DELAY = 1000
+const READY_DELAY = 3000
 
 const BASE_32_KEY_LENGTH = 52
 
@@ -61,6 +61,14 @@ module.exports = function SDK (opts) {
   }
 
   async function reallyReady (archive) {
+    if(archive.writable) return
+
+    const files = new Promise((resolve, reject) => {
+      archive.readdir('/', (err, files) => err ? resolve([]) : resolve(files))
+    })
+
+    if(files.length) return
+
     return new Promise((resolve, reject) => {
       function cb (err, result) {
         // Ignore errors saying we're up to date
@@ -139,7 +147,8 @@ module.exports = function SDK (opts) {
           const finalOptions = Object.assign(localOptions, options)
 
           archive = Hyperdrive(null, finalOptions)
-          addLocal(archive.metadata.key.toString('hex'))
+          const keyHex = archive.metadata.key.toString('hex')
+          addLocal(`dat://${keyHex}`)
         }
 
         this._archive = archive

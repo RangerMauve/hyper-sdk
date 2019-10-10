@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "node test && node test-promise",
-    "build-test": "browserify -d test.js > test-bundle.js"
+    "build-test": "browserify -d test.js > test-bundle.js",
+    "build-test-promise": "browserify -d test-promise.js > test-bundle.js"
   },
   "repository": {
     "type": "git",

@@ -88,7 +88,7 @@ function SDK ({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts } = {}) {
       // Location must be relative path
     }
 
-    const stringKey = location.toString('hex')
+    const stringKey = key.toString('hex')
 
     if (drives.has(stringKey)) return drives.get(stringKey)
 
