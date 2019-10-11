@@ -33,7 +33,7 @@ module.exports = function SDK (opts) {
   function isLocal (key) {
     try {
       const current = listLocal()
-      return current.includes(key)
+      return current.includes(key.replace('dat://',''));
     } catch (e) {
       return false
     }
