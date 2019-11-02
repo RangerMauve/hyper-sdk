@@ -27,6 +27,8 @@ const READY_DELAY = 3000
 
 const BASE_32_KEY_LENGTH = 52
 
+const DAT_KEY_URL_REGEX = /^dat:\/\/[\dabcdef]{64}\/?$/i
+
 module.exports = function SDK (opts) {
   const { Hyperdrive, resolveName, destroy } = SDKcb(opts)
 
@@ -421,6 +423,11 @@ module.exports = function SDK (opts) {
     }
 
     static async resolveName (name) {
+      // If it's already a valid dat URL, don't bother resolving it
+      // Avoids the case where you can't load an archive while offline
+      if(name.match(DAT_KEY_URL_REGEX)) {
+        return name
+      }
       return new Promise((resolve, reject) => {
         resolveName(name, (err, resolved) => {
           if (err) reject(err)
