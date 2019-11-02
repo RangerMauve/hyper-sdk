@@ -45,7 +45,7 @@ await myArchive.writeFile('/example.txt', 'Hello World!')
 ## API/Examples (Callbacks)
 
 ```js
-const SDK = require('../')
+const SDK = require('dat-sdk')
 const { Hypercore, Hyperdrive, resolveName, deleteStorage, destroy } = SDK()
 
 const archive = Hyperdrive(null, {
