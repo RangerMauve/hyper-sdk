@@ -37,7 +37,7 @@
     "hex-to-32": "^2.0.0",
     "hypercore": "^7.5.0",
     "hypercore-crypto": "^1.0.0",
-    "hyperdiscovery": "^10.0.0",
+    "hyperdiscovery": "^10.2.0",
     "hyperdrive": "^9.16.0",
     "node-dat-archive": "^2.2.0",
     "pauls-dat-api": "^8.1.0",
