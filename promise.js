@@ -187,6 +187,11 @@ module.exports = function SDK (opts) {
       })
     }
 
+    async getSecretKey() {
+      await this._loadPromise
+      return this._archive.secretKey
+    }
+
     async getInfo (opts = {}) {
       return timer(to(opts), async () => {
         await this._loadPromise
