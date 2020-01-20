@@ -12,11 +12,10 @@ The Dat SDK combines the lower level pieces of the Dat ecosystem into high level
 ## Goals
 
 - High level API
-- Compatible with Beaker
 - Cross-platform with same codebase
-  - Node
-  - Web (non-beaker)
-  - Beaker
+  - ✔ Node
+  - ✔ Web (non-beaker)
+  - ✔ Beaker (Promise API acts as polyfill for Beaker)
   - React-Native?
   - Electron?
 
@@ -40,6 +39,14 @@ const myArchive = await DatArchive.create({
 })
 
 await myArchive.writeFile('/example.txt', 'Hello World!')
+
+// Log the secret key in case you want to save it for later
+console.log(await myArchive.getSecretKey())
+
+// Use a saved secret key
+await DatArchive.load(someKey, {
+  secretKey: someSecretKey
+})
 ```
 
 ## API/Examples (Callbacks)
@@ -173,58 +180,5 @@ trie.put('key', 'value', () => {
 })
 
 ```
-
-## Roadmap
-
-- [ ] Initial Callback API using hyperdiscovery / universal-dat-storage
-  - [x] Draft API
-  - [x] Implement API
-    - [x] Hyperdrive
-    - [x] Hypercore
-    - [x] Extensions support (not released in master yet)
-    - [x] dat-dns support
-  - [x] Node.js compat (tests)
-  - [x] Web compat (tests)
-  - [x] Release v0.1.0
-- [x] Update callback API based on feedback
-  - [x] Better ability to work with folders
-  - [x] Ability to close drives
-  - [x] Check that hypercore replication is working
-  - [x] Release v0.2.0
-- [x] Initial Promise API / Beaker support
-  - [x] Implement DatArchive API over CB based SDK
-  - [x] Expose 'auto' module that automatically configures the SDK
-  - [x] Release
-- [ ] New Hyperdrive and Hyperswarm and Corestore
-  - [ ] Add corestore for replication
-  - [ ] virtual-corestore API
-  - [ ] Use virtual Corestore for hyperdrive and hypercore and a new corestore API
-  - [ ] Update discovery-swarm-web to use hyperswarm
-  - [ ] Release
-- [ ] Initial Beaker integration
-  - [ ] [Wrap](https://github.com/RangerMauve/datarchive-to-hyperdrive) DatArchive with hyperdrive
-  - [ ] Wrap resolveName API with Beaker APIs
-  - [ ] Test that hypercore still works using web storage / proxying
-  - [ ] Make sure tests work in Node / Web / Beaker
-  - [ ] Release
-- [ ] Promise API for new data types
-  - [ ] Draft API (Hypercore, DNS, Corestore)
-  - [ ] Create wrappers over Callback API
-  - [ ] Auto-detect presence of Beaker APIs and use those
-  - [ ] Release
-- [ ] Demo reusing logic between Beaker and Node / etc (static site generator?)
-- [ ] Integrate with Daemon
-  - [ ] Corestore API
-  - [ ] Wrap RPC client API in Callback API
-  - [ ] Auto-spawn the daemon
-  - [ ] Have web use existing implementation
-  - [ ] Update Cabal with new Daemon-based code
-  - [ ] Release
-- [ ] Update API / Integration based on feedback
-- [ ] V 1.0.0
-- [ ] Higher level Peers API?
-- [ ] Electron support with auto-spawning
-- [ ] React-native support with node.js thread running daemon
-- [ ] Web-Daemon
 
 [Dat Project]: https://dat.foundation
