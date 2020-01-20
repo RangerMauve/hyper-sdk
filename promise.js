@@ -14,7 +14,8 @@ const {
   InvalidPathError
 } = require('beaker-error-constants')
 const hexTo32 = require('hex-to-32')
-const localStorage = require('universal-localstorage')
+const getLocalstorage = require('./localstorage')
+
 const prompt = require('universal-prompt')
 
 const SDKcb = require('./')
@@ -31,6 +32,8 @@ const DAT_KEY_URL_REGEX = /^dat:\/\/[\dabcdef]{64}\/?$/i
 
 module.exports = function SDK (opts) {
   const { Hyperdrive, resolveName, destroy } = SDKcb(opts)
+
+  const localStorage = getLocalstorage((opts||{}).storageOpts)
 
   function isLocal (key) {
     try {

@@ -25,7 +25,8 @@
     "url": "https://github.com/datproject/sdk/issues"
   },
   "browser": {
-    "dat-dns": "./dns-web.js"
+    "dat-dns": "./dns-web.js",
+    "./localstorage": "./localstorage-web.js"
   },
   "homepage": "https://github.com/datproject/sdk#readme",
   "dependencies": {
@@ -40,6 +41,7 @@
     "hyperdiscovery": "^10.2.0",
     "hyperdrive": "^9.16.0",
     "node-dat-archive": "^2.2.0",
+    "node-localstorage": "^2.1.5",
     "pauls-dat-api": "^8.1.0",
     "random-access-memory": "^3.1.1",
     "universal-dat-storage": "^1.3.1",
