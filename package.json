@@ -1,6 +1,6 @@
 {
   "name": "dat-sdk",
-  "version": "0.3.6",
+  "version": "1.0.0",
   "description": "The official Dat SDK",
   "main": "index.js",
   "scripts": {
