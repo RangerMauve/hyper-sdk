@@ -19,6 +19,34 @@ The Dat SDK combines the lower level pieces of the Dat ecosystem into high level
   - React-Native?
   - Electron?
 
+
+## Installing
+
+[Node.js](https://nodejs.org/) / [Browserify](http://browserify.org/) workflows:
+
+```shell
+npm install --save dat-sdk
+```
+
+```js
+const SDK = require('dat-sdk')
+const SDKPromise = require('dat-sdk/promise')
+const {DatArchive} = require('dat-sdk/auto')
+```
+
+Or Web Browsers
+
+```html
+<script src="https://bundle.run/dat-sdk@1"></script>
+<script src="https://bundle.run/dat-sdk@1/promise.js"></script>
+<script src="https://bundle.run/dat-sdk@1/auto.js"></script>
+<script>
+  const SDK = window.datSDK
+  // Look at the examples from here
+</script>
+```
+
+
 ## Examples (Promise)
 
 ```js
