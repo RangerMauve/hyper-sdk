@@ -497,11 +497,32 @@ module.exports = function SDK (opts) {
 
       return archive
     }
+
+    static async unlink(url) {
+      const key = await DatArchive.resolveName(url)
+
+      return new Promise((resolve, reject) => {
+        deleteStorage(key, (err) => {
+          if(err) reject(err)
+          else resolve()
+        })
+      })
+    }
+  }
+
+  function destroyPromise(cb) {
+    return new Promise((resolve, reject) => {
+      destroy((err) => {
+        if(cb) cb(err)
+        if(err) reject(err)
+        else resolve()
+      })
+    })
   }
 
   return {
     DatArchive,
-    destroy
+    destroy: destroyPromise
   }
 }
 
