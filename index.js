@@ -49,11 +49,11 @@ function SDK ({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts } = {}) {
   }
 
   function destroy (cb) {
-    for (let drive of drives.values()) {
+    for (const drive of drives.values()) {
       drive.close()
     }
 
-    for (let core of cores.values()) {
+    for (const core of cores.values()) {
       core.close()
     }
 

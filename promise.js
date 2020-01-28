@@ -3,7 +3,6 @@ const pda = require('pauls-dat-api')
 const parseURL = require('url-parse')
 const concat = require('concat-stream')
 const EventTarget = require('dom-event-target')
-const { timer, toEventTarget } = require('node-dat-archive/lib/util')
 const {
   DAT_MANIFEST_FILENAME,
   DAT_VALID_PATH_REGEX
@@ -11,7 +10,8 @@ const {
 const {
   ArchiveNotWritableError,
   ProtectedFileNotWritableError,
-  InvalidPathError
+  InvalidPathError,
+  TimeoutError
 } = require('beaker-error-constants')
 const hexTo32 = require('hex-to-32')
 const getLocalstorage = require('./localstorage')
@@ -31,9 +31,9 @@ const BASE_32_KEY_LENGTH = 52
 const DAT_KEY_URL_REGEX = /^dat:\/\/[\dabcdef]{64}\/?$/i
 
 module.exports = function SDK (opts) {
-  const { Hyperdrive, resolveName, destroy } = SDKcb(opts)
+  const { Hyperdrive, resolveName, deleteStorage, destroy } = SDKcb(opts)
 
-  const localStorage = getLocalstorage((opts||{}).storageOpts)
+  const localStorage = getLocalstorage((opts || {}).storageOpts)
 
   function isLocal (key) {
     try {
@@ -66,13 +66,13 @@ module.exports = function SDK (opts) {
   }
 
   async function reallyReady (archive) {
-    if(archive.writable) return
+    if (archive.writable) return
 
     const files = new Promise((resolve, reject) => {
       archive.readdir('/', (err, files) => err ? resolve([]) : resolve(files))
     })
 
-    if(files.length) return
+    if (files.length) return
 
     return new Promise((resolve, reject) => {
       function cb (err, result) {
@@ -133,7 +133,7 @@ module.exports = function SDK (opts) {
       this.url = url
 
       this._loadPromise = Promise.resolve().then(async () => {
-        let { key, version } = await getURLData(url)
+        const { key, version } = await getURLData(url)
 
         let archive = null
 
@@ -190,7 +190,7 @@ module.exports = function SDK (opts) {
       })
     }
 
-    async getSecretKey() {
+    async getSecretKey () {
       await this._loadPromise
       return this._archive.secretKey
     }
@@ -262,7 +262,7 @@ module.exports = function SDK (opts) {
         end = end || this._checkout.metadata.length
         if (reverse) {
           // swap values
-          let t = start
+          const t = start
           start = end
           end = t
           // start from the end
@@ -433,7 +433,7 @@ module.exports = function SDK (opts) {
     static async resolveName (name) {
       // If it's already a valid dat URL, don't bother resolving it
       // Avoids the case where you can't load an archive while offline
-      if(name.match(DAT_KEY_URL_REGEX)) {
+      if (name.match(DAT_KEY_URL_REGEX)) {
         return name
       }
       return new Promise((resolve, reject) => {
@@ -498,23 +498,23 @@ module.exports = function SDK (opts) {
       return archive
     }
 
-    static async unlink(url) {
+    static async unlink (url) {
       const key = await DatArchive.resolveName(url)
 
       return new Promise((resolve, reject) => {
         deleteStorage(key, (err) => {
-          if(err) reject(err)
+          if (err) reject(err)
           else resolve()
         })
       })
     }
   }
 
-  function destroyPromise(cb) {
+  function destroyPromise (cb) {
     return new Promise((resolve, reject) => {
       destroy((err) => {
-        if(cb) cb(err)
-        if(err) reject(err)
+        if (cb) cb(err)
+        if (err) reject(err)
         else resolve()
       })
     })
@@ -580,3 +580,44 @@ const to = (opts) =>
   (opts && typeof opts.timeout !== 'undefined')
     ? opts.timeout
     : API_TIMEOUT
+
+function timer (ms, fn) {
+  var currentAction
+  var isTimedOut = false
+
+  // no timeout?
+  if (!ms) return fn(() => false)
+
+  return new Promise((resolve, reject) => {
+    // start the timer
+    const timer = setTimeout(() => {
+      isTimedOut = true
+      reject(new TimeoutError(currentAction ? `Timed out while ${currentAction}` : undefined))
+    }, ms)
+
+    // call the fn to get the promise
+    var promise = fn(action => {
+      if (action) currentAction = action
+      return isTimedOut
+    })
+
+    // wrap the promise
+    promise.then(
+      val => {
+        clearTimeout(timer)
+        resolve(val)
+      },
+      err => {
+        clearTimeout(timer)
+        reject(err)
+      }
+    )
+  })
+}
+
+function toEventTarget (es) {
+  var target = new EventTarget()
+  es.on('data', ([event, args]) => target.send(event, args))
+  target.close = es.destroy.bind(es)
+  return target
+}
