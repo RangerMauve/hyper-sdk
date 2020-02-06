@@ -46,6 +46,39 @@ Or Web Browsers
 </script>
 ```
 
+## Examples (browserify)
+
+You can bundle your code with [browserify](http://browserify.org/) using the following command:
+
+```
+browserify index.js > bundle.js
+```
+
+Then you can include `bundle.js` in your HTML page.
+
+## Examples (webpack.config.js)
+
+To bundle with webpack instead of browserify, resolve the `fs` module with the `graceful-fs` module.
+
+```js
+const path = require('path')
+
+module.exports = {
+  entry: './index.js',
+  target: 'web',
+  resolve: {
+    alias: {
+      fs: 'graceful-fs'
+    }
+  },
+  output: {
+    filename: 'bundle.js',
+    path: path.resolve(__dirname, 'dist')
+  }
+}
+```
+
+Then you can include `./dist/bundle.js` in your HTML page.
 
 ## Examples (Promise)
 
@@ -206,29 +239,6 @@ trie.put('key', 'value', () => {
     console.log('Loaded value from trie: ', node.value)
   })
 })
-
-```
-
-## Examples (webpack.config.js)
-
-To bundle with webpack instead of browserify, resolve the `fs` module with the `graceful-fs` module.
-
-```js
-const path = require('path')
-
-module.exports = {
-  entry: './src/dat.js',
-  target: 'web',
-  resolve: {
-    alias: {
-      fs: 'graceful-fs'
-    }
-  },
-  output: {
-    filename: 'dat.js',
-    path: path.resolve(__dirname, 'dist')
-  }
-}
 
 ```
 
