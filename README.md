@@ -209,6 +209,29 @@ trie.put('key', 'value', () => {
 
 ```
 
+## Examples (webpack.config.js)
+
+To bundle with webpack instead of browserify, resolve the `fs` module with the `graceful-fs` module.
+
+```js
+const path = require('path')
+
+module.exports = {
+  entry: './src/dat.js',
+  target: 'web',
+  resolve: {
+    alias: {
+      fs: 'graceful-fs'
+    }
+  },
+  output: {
+    filename: 'dat.js',
+    path: path.resolve(__dirname, 'dist')
+  }
+}
+
+```
+
 ## API (Promise)
 
 ### `const {DatArchive, destroy} = SDK({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts })`
