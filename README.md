@@ -80,6 +80,12 @@ module.exports = {
 
 Then you can include `./dist/bundle.js` in your HTML page.
 
+---
+
+If you're interested in using the latest and greatest (no browser support yet), check out the [dat2 branch](https://github.com/datproject/sdk/tree/dat2-take-two). This uses the latest version of Hyperdrive for the filesystem abstraction, and Hyperswarm for improved networking.
+
+---
+
 ## Examples (Promise)
 
 ```js
