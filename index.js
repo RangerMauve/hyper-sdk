@@ -14,6 +14,8 @@ const datDNS = require('dat-dns')
 const makeHyperdrive = require('hyperdrive')
 const Corestore = require('corestore')
 const makeHypercore = require('hypercore')
+const makeHypercorePromise = require('@geut/hypercore-promise')
+const makeHyperdrivePromise = require('@geut/hyperdrive-promise')
 
 const DEFAULT_SWARM_OPTS = {
   extensions: []
@@ -136,7 +138,7 @@ async function SDK ({
       driveStorage = corestore
     }
 
-    const drive = makeHyperdrive(driveStorage, key, opts)
+    const drive = makeHyperdrivePromise(makeHyperdrive(driveStorage, key, opts))
 
     drives.set(nameOrKey, drive)
     if (!key) {
@@ -211,6 +213,9 @@ async function SDK ({
         core = corestore.namespace(nameOrKey).default(opts)
       }
     }
+
+    // Wrap with promises
+    core = makeHypercorePromise(core)
 
     cores.set(nameOrKey, core)
     if (!key) {

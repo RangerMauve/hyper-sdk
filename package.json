@@ -31,6 +31,8 @@
   },
   "homepage": "https://github.com/datproject/sdk#readme",
   "dependencies": {
+    "@geut/hypercore-promise": "^1.1.0",
+    "@geut/hyperdrive-promise": "^3.0.0",
     "concat-stream": "^2.0.0",
     "corestore": "^5.0.8",
     "corestore-swarm-networking": "^4.0.3",
