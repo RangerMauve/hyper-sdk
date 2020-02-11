@@ -72,8 +72,9 @@ async function SDK ({
 
   // I think this is used to create a persisted identity?
   const noiseSeed = corestore._deriveSecret(applicationName, 'replication-keypair')
+  const keyPair = HypercoreProtocol.keyPair(noiseSeed)
   swarm.listen({
-    keyPair: HypercoreProtocol.keyPair(noiseSeed)
+    keyPair
   })
 
   return {
@@ -86,6 +87,10 @@ async function SDK ({
     _corestore: corestore,
     _swarm: swarm,
     _dns: dns
+  }
+
+  async function getIdentity() {
+    return keyPair
   }
 
   function destroy (cb) {
