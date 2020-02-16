@@ -81,6 +81,7 @@ async function SDK ({
     Hyperdrive,
     Hypercore,
     resolveName,
+    getIdentity,
     deleteStorage,
     destroy,
     _storage: storage,
@@ -89,7 +90,7 @@ async function SDK ({
     _dns: dns
   }
 
-  async function getIdentity() {
+  async function getIdentity () {
     return keyPair
   }
 
@@ -110,6 +111,8 @@ async function SDK ({
   }
 
   function deleteStorage (key, cb) {
+    // Figure this out later?
+    // Might need something in hypercore?
     storage.delete(key, cb)
   }
 
