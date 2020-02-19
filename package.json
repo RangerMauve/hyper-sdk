@@ -34,7 +34,7 @@
     "@geut/hypercore-promise": "^1.1.0",
     "@geut/hyperdrive-promise": "^3.0.0",
     "concat-stream": "^2.0.0",
-    "corestore": "^5.0.8",
+    "corestore": "^5.0.9",
     "corestore-swarm-networking": "^4.0.3",
     "dat-dns": "^4.0.0",
     "dat-encoding": "^5.0.1",

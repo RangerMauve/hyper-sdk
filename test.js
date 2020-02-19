@@ -122,19 +122,17 @@ async function run () {
     t.timeoutAfter(TEST_TIMEOUT)
     t.plan(3)
 
-    const core = Hypercore('Example hypercore 2')
+    const core1 = Hypercore('Example hypercore 2')
 
-    core.append('Hello World', () => {
-      const core2 = Hypercore2(core.key.toString('hex'))
+    core1.append('Hello World', () => {
+      const core2 = Hypercore2(core1.key)
 
-      reallyReady(core2, () => {
-        t.equal(core2.key.toString('hex'), core.key.toString('hex'), 'loaded key')
-        core2.get(0, (err, data) => {
-          t.notOk(err, 'no error reading from core')
-          t.ok(data, 'got data from replicated core')
+      t.deepEqual(core2.key, core1.key, 'loaded key correctly')
+      core2.get(0, (err, data) => {
+        t.notOk(err, 'no error reading from core')
+        t.ok(data, 'got data from replicated core')
 
-          t.end()
-        })
+        t.end()
       })
     })
   })
