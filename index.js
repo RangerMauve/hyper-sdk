@@ -215,7 +215,7 @@ async function SDK ({
     } else {
       if (key) {
         // If a dat key was provided, get it from the corestore
-        core = corestore.get({ key, ...opts })
+         core = corestore.get({ key, ...opts })
       } else {
         // If no dat key was provided, but a name was given, use it as a namespace
         core = corestore.namespace(nameOrKey).default(opts)
