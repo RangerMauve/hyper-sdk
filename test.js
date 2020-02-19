@@ -125,7 +125,7 @@ async function run () {
     const core = Hypercore('Example hypercore 2')
 
     core.append('Hello World', () => {
-      const core2 = Hypercore2(core.key)
+      const core2 = Hypercore2(core.key.toString('hex'))
 
       reallyReady(core2, () => {
         t.equal(core2.key.toString('hex'), core.key.toString('hex'), 'loaded key')
