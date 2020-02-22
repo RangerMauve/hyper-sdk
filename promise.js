@@ -192,7 +192,7 @@ module.exports = function SDK (opts) {
 
     async getSecretKey () {
       await this._loadPromise
-      return this._archive.secretKey
+      return this._archive.metadata.secretKey
     }
 
     async getInfo (opts = {}) {
