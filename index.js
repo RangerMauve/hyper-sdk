@@ -61,9 +61,6 @@ async function SDK ({
     )
   }
 
-  const swarm = new SwarmNetworker(corestore, Object.assign({}, DEFAULT_SWARM_OPTS, swarmOpts))
-  const dns = datDNS(Object.assign({}, DEFAULT_DNS_OPTS, dnsOpts))
-
   // Track list of hyperdrives
   const drives = new Map()
   const cores = new Map()
@@ -71,11 +68,12 @@ async function SDK ({
   await corestore.ready()
 
   // I think this is used to create a persisted identity?
+  // Needs to be created before the swarm so that it can be passed in
   const noiseSeed = corestore._deriveSecret(applicationName, 'replication-keypair')
   const keyPair = HypercoreProtocol.keyPair(noiseSeed)
-  swarm.listen({
-    keyPair
-  })
+
+  const swarm = new SwarmNetworker(corestore, Object.assign({keyPair}, DEFAULT_SWARM_OPTS, swarmOpts))
+  const dns = datDNS(Object.assign({}, DEFAULT_DNS_OPTS, dnsOpts))
 
   return {
     Hyperdrive,
@@ -83,7 +81,7 @@ async function SDK ({
     resolveName,
     getIdentity,
     deleteStorage,
-    destroy,
+    close,
     _storage: storage,
     _corestore: corestore,
     _swarm: swarm,
@@ -94,7 +92,7 @@ async function SDK ({
     return keyPair
   }
 
-  function destroy (cb) {
+  function close (cb) {
     for (const drive of drives.values()) {
       drive.close()
     }
@@ -158,11 +156,11 @@ async function SDK ({
     }
 
     drive.ready(() => {
-      swarm.seed(drive.discoveryKey)
+      swarm.join(drive.discoveryKey)
     })
 
     drive.once('close', () => {
-      swarm.unseed(drive.discoveryKey)
+      swarm.leave(drive.discoveryKey)
 
       const key = drive.key
       const stringKey = key.toString('hex')
@@ -235,14 +233,15 @@ async function SDK ({
     }
 
     core.ready(() => {
-      swarm.seed(core.discoveryKey)
+      swarm.join(core.discoveryKey)
     })
 
     core.once('close', () => {
       const key = core.key
       const stringKey = key.toString('hex')
 
-      swarm.unseed(core.discoveryKey)
+      swarm.leave(core.discoveryKey)
+
       cores.delete(stringKey)
       cores.delete(nameOrKey)
     })

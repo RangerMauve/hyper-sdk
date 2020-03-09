@@ -19,10 +19,10 @@ function getNewStorage () {
 run()
 
 async function run () {
-  const { Hyperdrive, Hypercore, resolveName, destroy } = await SDK({
+  const { Hyperdrive, Hypercore, resolveName, close } = await SDK({
     storage: getNewStorage()
   })
-  const { Hyperdrive: Hyperdrive2, Hypercore: Hypercore2, destroy: destroy2 } = await SDK({
+  const { Hyperdrive: Hyperdrive2, Hypercore: Hypercore2, close: close2 } = await SDK({
     storage: getNewStorage()
   })
 
@@ -32,8 +32,8 @@ async function run () {
   const EXAMPLE_DNS_RESOLUTION = '60c525b5589a5099aa3610a8ee550dcd454c3e118f7ac93b7d41b6b850272330'
 
   test.onFinish(() => {
-    destroy(() => {
-      destroy2()
+    close(() => {
+      close2()
     })
   })
 
