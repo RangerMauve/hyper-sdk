@@ -26,7 +26,7 @@ async function run () {
     storage: getNewStorage()
   })
 
-  const TEST_TIMEOUT = 10 * 1000
+  const TEST_TIMEOUT = 60 * 1000
 
   const EXAMPLE_DNS_URL = 'dat://dat.foundation'
   const EXAMPLE_DNS_RESOLUTION = '60c525b5589a5099aa3610a8ee550dcd454c3e118f7ac93b7d41b6b850272330'
@@ -64,17 +64,20 @@ async function run () {
   test('Hyperdrive - load drive over network', (t) => {
     t.timeoutAfter(TEST_TIMEOUT)
 
+    const EXAMPLE_DATA = 'Hello World!'
+
     const drive1 = Hyperdrive2('Example drive 3')
 
-    drive1.ready(() => {
-      drive1.writeFile('/index.html', 'Hello World!', () => {
-        const drive = Hyperdrive(drive1.key)
-        reallyReady(drive, () => {
-          drive.readFile('/index.html', 'utf8', (err, data) => {
-            t.notOk(err, 'loaded file without error')
+    drive1.writeFile('/index.html', EXAMPLE_DATA, (err) => {
+      t.notOk(err, 'wrote to initial archive')
+      const drive = Hyperdrive(drive1.key)
+      t.deepEqual(drive1.key, drive.key, 'loaded correct archive')
+      drive.once('peer-add', () => {
+        drive.readFile('/index.html', 'utf8', (err, data) => {
+          t.notOk(err, 'loaded file without error')
+          t.equal(data, EXAMPLE_DATA)
 
-            t.end()
-          })
+          t.end()
         })
       })
     })
@@ -128,26 +131,15 @@ async function run () {
       const core2 = Hypercore2(core1.key)
 
       t.deepEqual(core2.key, core1.key, 'loaded key correctly')
-      core2.get(0, (err, data) => {
-        t.notOk(err, 'no error reading from core')
-        t.ok(data, 'got data from replicated core')
 
-        t.end()
+      core2.once('peer-add', () => {
+        core2.get(0, (err, data) => {
+          t.notOk(err, 'no error reading from core')
+          t.ok(data, 'got data from replicated core')
+
+          t.end()
+        })
       })
     })
-  })
-}
-
-// This make sure you sync up with peers before trying to do anything with the archive
-function reallyReady (driveOrFeed, cb) {
-  driveOrFeed.ready(() => {
-    const feed = driveOrFeed.metadata ? driveOrFeed.metadata : driveOrFeed
-    if (feed.peers.length) {
-      feed.update({ ifAvailable: true }, cb)
-    } else {
-      feed.once('peer-add', () => {
-        feed.update({ ifAvailable: true }, cb)
-      })
-    }
   })
 }

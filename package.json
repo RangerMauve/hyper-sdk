@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "node test",
-    "build-test": "browserify -d test.js > test-bundle.js",
-    "build-test-promise": "browserify -d test-promise.js > test-bundle.js"
+    "build-test": "browserify -d test.js > test-bundle.js"
   },
   "repository": {
     "type": "git",
@@ -27,25 +26,27 @@
   "browser": {
     "dat-dns": "./dns-web.js",
     "hyperswarm": "hyperswarm-web",
-    "./localstorage": "./localstorage-web.js"
+    "sodium-native": "@geut/sodium-javascript-plus",
+    "sodium-universal": "@geut/sodium-javascript-plus"
   },
   "homepage": "https://github.com/datproject/sdk#readme",
   "dependencies": {
     "@geut/hypercore-promise": "^1.1.0",
     "@geut/hyperdrive-promise": "^3.0.0",
+    "@geut/sodium-javascript-plus": "0.0.4",
     "concat-stream": "^2.0.0",
-    "corestore": "^5.0.9",
-    "corestore-swarm-networking": "^5.0.2",
+    "corestore": "^5.1.1",
+    "corestore-swarm-networking": "^5.1.0",
     "dat-dns": "^4.0.0",
     "dat-encoding": "^5.0.1",
     "dom-event-target": "^1.0.0",
     "global": "^4.4.0",
     "hex-to-32": "^2.0.0",
-    "hypercore": "^8.11.0",
+    "hypercore": "^8.12.0",
     "hypercore-crypto": "^1.0.0",
     "hypercore-protocol": "^7.10.0",
-    "hyperdrive": "^10.8.17",
-    "hyperswarm-web": "^1.0.1",
+    "hyperdrive": "^10.8.20",
+    "hyperswarm-web": "^1.0.2",
     "node-localstorage": "^2.1.5",
     "random-access-application": "^1.0.0",
     "random-access-memory": "^3.1.1",
@@ -55,7 +56,6 @@
   },
   "devDependencies": {
     "browserify": "^16.2.3",
-    "hypertrie": "^3.7.1",
     "random-access-file": "^2.1.3",
     "tape": "^4.10.2",
     "tmp": "^0.1.0"

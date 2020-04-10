@@ -72,7 +72,7 @@ async function SDK ({
   const noiseSeed = corestore._deriveSecret(applicationName, 'replication-keypair')
   const keyPair = HypercoreProtocol.keyPair(noiseSeed)
 
-  const swarm = new SwarmNetworker(corestore, Object.assign({keyPair}, DEFAULT_SWARM_OPTS, swarmOpts))
+  const swarm = new SwarmNetworker(corestore, Object.assign({ keyPair }, DEFAULT_SWARM_OPTS, swarmOpts))
   const dns = datDNS(Object.assign({}, DEFAULT_DNS_OPTS, dnsOpts))
 
   return {
@@ -156,11 +156,17 @@ async function SDK ({
     }
 
     drive.ready(() => {
-      swarm.join(drive.discoveryKey)
+      const {
+        discoveryKey = drive.discoveryKey,
+        lookup = true,
+        announce = true
+      } = opts
+      swarm.join(discoveryKey, { lookup, announce })
     })
 
     drive.once('close', () => {
-      swarm.leave(drive.discoveryKey)
+      const { discoveryKey = drive.discoveryKey } = opts
+      swarm.leave(discoveryKey)
 
       const key = drive.key
       const stringKey = key.toString('hex')
@@ -233,14 +239,20 @@ async function SDK ({
     }
 
     core.ready(() => {
-      swarm.join(core.discoveryKey)
+      const {
+        discoveryKey = core.discoveryKey,
+        lookup = true,
+        announce = true
+      } = opts
+      swarm.join(discoveryKey, { announce, lookup })
     })
 
     core.once('close', () => {
+      const { discoveryKey = core.discoveryKey } = opts
       const key = core.key
       const stringKey = key.toString('hex')
 
-      swarm.leave(core.discoveryKey)
+      swarm.leave(discoveryKey)
 
       cores.delete(stringKey)
       cores.delete(nameOrKey)
