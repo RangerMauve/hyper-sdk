@@ -1,6 +1,6 @@
 {
   "name": "dat-sdk",
-  "version": "2.0.0-4",
+  "version": "2.0.0-5",
   "description": "The official Dat SDK",
   "main": "index.js",
   "scripts": {
@@ -31,16 +31,21 @@
     "sodium-universal": "@geut/sodium-javascript-plus"
   },
   "browserify": {
-		"transform": [
-			["babelify", {"global": true}]
-		]
+    "transform": [
+      [
+        "babelify",
+        {
+          "global": true
+        }
+      ]
+    ]
   },
   "homepage": "https://github.com/datproject/sdk#readme",
   "files": [
-		"README.md",
-		"index.js",
-		"dns-web.js",
-		"babel.config.json"
+    "README.md",
+    "index.js",
+    "dns-web.js",
+    "babel.config.json"
   ],
   "dependencies": {
     "@geut/hypercore-promise": "^1.1.0",
