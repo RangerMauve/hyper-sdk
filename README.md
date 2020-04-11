@@ -323,11 +323,11 @@ Emitted when a critical error during load happened.
 
 Emitted when the archive has been closed
 
-### `archive.on('peer-add', peer)`
+#### `archive.on('peer-add', peer)`
 
 Emitted when a new peer has started replicating wiht the archive.
 
-### `archive.on('peer-remove', peer)`
+#### `archive.on('peer-remove', peer)`
 
 Emitted when a peer has stopped replicating wit the archive.
 
@@ -721,7 +721,7 @@ Fully close this feed.
 
 Calls the callback with `(err)` when all storage has been closed.
 
-### `await feed.destroyData()`
+#### `await feed.destroyData()`
 
 Closes the feed and deletes all of it's data from storage.
 
@@ -741,7 +741,7 @@ When done a report is passed to the callback that looks like this:
 
 If a block does not match the hash it is cleared from the data bitfield.
 
-### `const extension = feed.registerExtension(name, handlers)`
+#### `const extension = feed.registerExtension(name, handlers)`
 
 Listens on extension messages of type `name` on the feeds replication channels.
 
@@ -843,11 +843,11 @@ Emitted every time ALL data from `0` to `feed.length` has been downloaded.
 
 Emitted when the feed has been fully closed
 
-### `feed.on('peer-add', peer)`
+#### `feed.on('peer-add', peer)`
 
 Emitted when a new peer has started replicating with the feed.
 
-### `feed.on('peer-remove', peer)`
+#### `feed.on('peer-remove', peer)`
 
 Emitted when a peer has stopped replicating with the feed.
 
