@@ -14,51 +14,35 @@ The Dat SDK combines the lower level pieces of the Dat ecosystem into high level
 - High level API
 - Cross-platform with same codebase
   - ✔ Node
-  - ✔ Web (non-beaker)
-  - ✔ Beaker (Promise API acts as polyfill for Beaker)
-  - React-Native?
-  - Electron?
-
+  - ✔ Web
+  - ✔ Electron
+  - React-Native (with [nodejs-mobile-react-native?](https://github.com/janeasystems/nodejs-mobile-react-native))
 
 ## Installing
 
 [Node.js](https://nodejs.org/) / [Browserify](http://browserify.org/) workflows:
 
 ```shell
-npm install --save dat-sdk
+npm install --save dat-sdk@next
 ```
 
 ```js
 const SDK = require('dat-sdk')
-const SDKPromise = require('dat-sdk/promise')
-const {DatArchive} = require('dat-sdk/auto')
 ```
 
 Or Web Browsers
 
 ```html
-<script src="https://bundle.run/dat-sdk@1"></script>
-<script src="https://bundle.run/dat-sdk@1/promise.js"></script>
-<script src="https://bundle.run/dat-sdk@1/auto.js"></script>
+<script src="https://bundle.run/dat-sdk@next"></script>
 <script>
   const SDK = window.datSDK
   // Look at the examples from here
 </script>
 ```
 
-## Examples (browserify)
-
-You can bundle your code with [browserify](http://browserify.org/) using the following command:
-
-```
-browserify index.js > bundle.js
-```
-
-Then you can include `bundle.js` in your HTML page.
-
 ## Examples (webpack.config.js)
 
-To bundle with webpack instead of browserify, resolve the `fs` module with the `graceful-fs` module.
+To bundle with webpack, you'll need to alias some dependencies.
 
 ```js
 const path = require('path')
@@ -68,7 +52,11 @@ module.exports = {
   target: 'web',
   resolve: {
     alias: {
-      fs: 'graceful-fs'
+      fs: 'graceful-fs',
+      'sodium-native': '@geut/sodium-javascript-plus',
+      'sodium-universal': '@geut/sodium-javascript-plus',
+      hyperswarm: 'hyperswarm-web',
+      util: './node_modules/util/util.js'
     }
   },
   output: {
@@ -80,43 +68,26 @@ module.exports = {
 
 Then you can include `./dist/bundle.js` in your HTML page.
 
-## Examples (Promise)
-
-```js
-// Auto-detects sane defaults based on your environment
-// Uses Beaker's APIs if they are if they are available
-// DatArchive is the same as Beaker
-// https://beakerbrowser.com/docs/apis/dat
-const {DatArchive} = require('dat-sdk/auto')
-
-const archive = await DatArchive.load('dat://dat.foundation')
-
-const someData = await archive.readFile('/dat.json', 'utf8')
-
-console.log('Dat foundation dat.json:', someData)
-
-const myArchive = await DatArchive.create({
-  title: 'My Archive'
-})
-
-await myArchive.writeFile('/example.txt', 'Hello World!')
-
-// Log the secret key in case you want to save it for later
-console.log(await myArchive.getSecretKey())
-
-// Use a saved secret key
-await DatArchive.load(someKey, {
-  secretKey: someSecretKey
-})
-```
-
-## API/Examples (Callbacks)
+## API/Examples
 
 ```js
 const SDK = require('dat-sdk')
-const { Hypercore, Hyperdrive, resolveName, deleteStorage, destroy } = SDK()
 
-const archive = Hyperdrive(null, {
+const sdk = await SDK();
+const {
+	Hypercore,
+	Hyperdrive,
+	resolveName,
+	close
+} = sdk
+
+// Create a new Hyperdrive.
+// If you want to create a new archive, pass in a name for it
+// This will be used to derive a secret key
+// Every time you open a drive with that name it'll derive the same key
+// This uses a master key that's generated once per device
+// That means the same name will yield a different key on a different machine
+const archive = Hyperdrive('My archive name', {
   // This archive will disappear after the process exits
   // This is here so that running the example doesn't clog up your history
   persist: false,
@@ -140,9 +111,10 @@ archive.ready(() => {
   })
 })
 
-resolveName('dat://beakerbrowser.com', (err, url) => {
+// This example is currently broken because Beaker's website isn't on Dat 2 yet
+resolveName('dat://beakerbrowser.com', (err, key) => {
   if (err) throw err
-  const archive = Hyperdrive(url)
+  const archive = Hyperdrive(key)
 
   archive.readFile('/dat.json', 'utf8', (err, data) => {
     if (err) throw err
@@ -162,25 +134,12 @@ const SOME_URL = 'dat://0a9e202b8055721bd2bc93b3c9bbc03efdbda9cfee91f01a123fdeaa
 
 const someArchive = Hyperdrive(SOME_URL)
 
-reallyReady(someArchive, () => {
-  someArchive.readdir('/', console.log)
-})
-
-// This make sure you sync up with peers before trying to do anything with the archive
-function reallyReady (archive, cb) {
-  if (archive.metadata.peers.length) {
-    archive.metadata.update({ ifAvailable: true }, cb)
-  } else {
-    archive.metadata.once('peer-add', () => {
-      archive.metadata.update({ ifAvailable: true }, cb)
-    })
-  }
-}
+someArchive.readdir('/', console.log)}
 
 // Create a hypercore
 // Check out the hypercore docs for what you can do with it
 // https://github.com/mafintosh/hypercore
-const myCore = Hypercore(null, {
+const myCore = Hypercore('my hypercore name', {
   valueEncoding: 'json',
   persist: false,
   // storage can be set to an instance of `random-access-*`
@@ -196,30 +155,31 @@ myCore.append(JSON.stringify({
 }), () => {
   // Use extension messages for sending extra data over the p2p connection
   const discoveryCoreKey = 'dat://bee80ff3a4ee5e727dc44197cb9d25bf8f19d50b0f3ad2984cfe5b7d14e75de7'
-  const discoveryCore = new Hypercore(discoveryCoreKey, {
-    extensions: ['discovery']
-  })
+  const discoveryCore = new Hypercore(discoveryCoreKey)
 
-  // When you find a new peer, tell them about your core
-  discoveryCore.on('peer-add', (peer) => {
-    console.log('Got a peer!')
-    peer.extension('discovery', myCore.key)
-  })
+	// Register the extension message handler
+	const extension = discoveryCore.registerExtension('discovery', {
+		// Set the encoding type for messages
+		encoding: 'binary',
+		onmessage: (message, peer) => {
+			// Recieved messages will be automatically decoded
+			console.log('Got key from peer!', message)
 
-  // When a peer tells you about their core, load it
-  discoveryCore.on('extension', (type, message) => {
-    console.log('Got extension message', type, message)
-    if (type !== 'discovery') return
-    discoveryCore.close()
+			const otherCore = new Hypercore(message, {
+        valueEncoding: 'json',
+        persist: false
+      })
 
-    const otherCore = new Hypercore(message, {
-      valueEncoding: 'json',
-      persist: false
-    })
+      // Render the peer's data from their core
+      otherCore.get(0, console.log)
+		}
+	})
 
-    // Render the peer's data from their core
-    otherCore.get(0, console.log)
-  })
+	// When you find a peer tell them about your core
+	discoveryCore.on('peer-add', (peer) => {
+		console.log('Got a peer!')
+		extension.send(myCore.key, peer)
+	})
 })
 
 const hypertrie = require('hypertrie')
@@ -228,7 +188,7 @@ const hypertrie = require('hypertrie')
 // Check out what you can do with hypertrie from there:
 // https://github.com/mafintosh/hypertrie
 const trie = hypertrie(null, {
-  feed: new Hypercore(null, {
+  feed: new Hypercore('my trie core', {
     persist: false
   })
 })
@@ -242,322 +202,63 @@ trie.put('key', 'value', () => {
 
 ```
 
-## API (Promise)
+## API
 
-### `const {DatArchive, destroy} = SDK({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts })`
+The API supports both promises and callbacks. Everywhere where you see `await`, you can instead pass a node-style callback.
 
-This initializes the Dat SDK.
-
-
-- `storageOpts`: This lets you configure how the SDK will store data. Used by the [universal-dat-storage](https://github.com/RangerMauve/universal-dat-storage) module.
-  - `application: 'dat'`: The name of the application using the SDK if you want to have the data stored separately. Used by [env-paths](https://github.com/sindresorhus/env-paths#pathsdata) to generate the storageLocation
-  - `storageLocation: null`: A location (on disk) to store the archives in.
-- `swarmOpts`: This lets you configure [discovery-swarm](https://www.npmjs.com/package/discovery-swarm) and [discovery-swarm-web](https://www.npmjs.com/package/discovery-swarm-web)
-  - `id`: The ID to use when doing p2p traffic
-  - `maxConnections`: The maximum number of connections to keep for this swarm.
-  - `extensions: []`: The set of extension messages to use when replicating with peers
-  - `utp: true`: Whether to use utp in discovery-swarm
-  - `tcp: true`: Whether to use tcp in discovery-swarm
-  - `bootstrap: ['signal.mauve.moe']`: The WebRTC bootstrap server list used by discovery-swarm-web
-  - `discovery: 'discoveryswarm.mauve.moe'`: The proxy server used by discovery-swarm-web
-- `driveOpts`: This lets you configure the behavior of [Hyperdrive](https://github.com/mafintosh/hyperdrive) instances
-  - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
-  - `persist: true`: Whether the data should be persisted to storage. Set to false to create in-memory archives
-  - `extensions`: The set of extension message types to use with this archive when replicating.
-- `coreOpts`: This lets you configure the behavior of [Hypercore](https://github.com/mafintosh/hypercore) instances
-  - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
-  - `persist: true`: Whether the data should be persisted to storage. Set to false to create in-memory feeds
-  - `extensions`: The set of extension message types to use with this feed when replicating.
-  - `valueEncoding: 'json' | 'utf-8' | 'binary'`: The encoding to use for the data stored in the hypercore. Use JSON to store / retrieve objects.
-- `dnsOpts`: Configure the [dat dns](https://github.com/datprotocol/dat-dns) resolution module. You probably shouldn't mess with this.
-  - `recordName: 'dat'`: name of .well-known file
-  - `protocolRegex: /^dat:\/\/([0-9a-f]{64})/i`: RegExp object for custom protocol
-  - `hashRegex: /^[0-9a-f]{64}?$/i`: RegExp object for custom hash i.e.
-  - `txtRegex: /"?datkey=([0-9a-f]{64})"?/i`: RegExp object for DNS TXT record of custom protocol
-
-### `await destroy()`
-
-Release all resources being used by the SDK so you can safely stop your process.
-
-### `const archive = await DatArchive.load(location, opts)`
-
-This loads up a Dat Archive for the given URL / Key / File path.
-
-- `location`: This is either the `dat://` URL (which might have a domain), a dat key, or a file path for your archive.
-- `opts`: These are options for configuring this archive
-  - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
-  - `persist: true`: Whether the data should be persisted to storage. Set to false to create in-memory archives
-  - `secretkey`: The secret key to use for this archive to get write access
-
-### `const archive = await DatArchive.create(opts)`
-
-This creates a new Dat Archive.
-
-- `opts` These are the options for the archive's metadata and it's properties
-  - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
-  - `persist: true`: Whether the data should be persisted to storage. Set to false to create in-memory archives
-  - `secretkey`: The secret key to use for this archive to get write access
-  - `title`: The title of the archive
-  - `description`: A brief description of what the archive contains
-  - `type`: An array of strings for the type of archive this is. See the [manifest](https://beakerbrowser.com/docs/apis/manifest.html#type) docs for more info.
-
-### `const archive = await DatArchive.fork(url, opts)`
-
-Create a new archive based on the data within another archive
-
-- `url` The URL of the archive to fork off of
-- `opts` These options will be used in the new archive.
-  - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
-  - `persist: true`: Whether the data should be persisted to storage. Set to false to create in-memory archives
-  - `secretkey`: The secret key to use for this archive to get write access
-  - `title`: The title of the archive
-  - `description`: A brief description of what the archive contains
-  - `type`: An array of strings for the type of archive this is. See the [manifest](https://beakerbrowser.com/docs/apis/manifest.html#type) docs for more info.
-
-### `await DatArchive.unlink(url)`
-
-Delete the storage for an archive.
-
-- `url`: The URL of the archive to delete
-
-### `const archive = await DatArchive.selectArchive()`
-
-Prompt the user to select an archive from the ones they have created locally. The implementation is super hacky, so use with caution.
-
-### `const url = await DatArchive.resolveName(url)`
-
-Resolve a URL that uses dat-dns to the raw `dat://` url.
-
-- `url`: The `dat://` URL with a domain to resolve
-
-#### `const url = archive.url`
-
-Get the URL for the given archive.
-
-#### `const info = await archive.getInfo()`
-
-Get metadata about the archive
-
-- `info`: The metadata related to the archive.
-  - `key`: string (the archive public key)
-  - `url`: string (the archive URL)
-  - `isOwner`: boolean (is the user the owner of this archive?)
-  - `version`: number (the archive's current revision number)
-  - `peers`: number (the number of active connections for the archive)
-  - `mtime`: number (the walltime of the last received update; is reliable)
-  - `size`: number (bytes, the size-on-disk of the archive)
-  - `title`: string (the archive title)
-  - `description`: string (the archive description)
-  - `type`: array of strings (the archive's type identifiers)
-  - `links`: object (top-level links to other resources)
-
-#### `await archive.configure(configuration)`
-
-Update the metadata about the archive.
-
-- `configuration`: The metadata to update
-  - `title` String. The title of the archive.
-  - `description` String. The description of the archive.
-  - `type` Array<String>. The archive’s type identifiers. Learn more.
-  - `links` Object. Top-level links to other resources. Learn more.
-  - `web_root` String. Path of the folder from which all web requests should be served.
-  - `fallback_page` String. Path to a fallback page to serve instead of the default 404 page.
-
-#### `const stat = await archive.stat(path)`
-
-- `path`: The path to get stats about from the archive
-- `stat.isDirectory()`: Check if the path is a directory
-- `stat.isFile()`: Check if the path is a file
-- `stat.size`: number (bytes)
-- `stat.blocks`: number (number of data blocks in the metadata)
-- `stat.downloaded`: number (number of blocks downloaded, if a remote archive)
-- `stat.mtime`: Date (last modified time; not reliable)
-- `stat.ctime`: Date (creation time; not reliable)`
-
-#### `const data = await archive.readFile(path, opts)`
-
-- `path` The path to the file you wish to read
-- `opts.encoding`: The encoding to read the file with, can be one of `utf8`, `base64`, `hex`, and `binary`
-- `data`: The entire contents of the file, either as a string, or an ArrayBuffer if you used the `binary` encoding.
-
-#### `const list = await archive.readdir(path, opts)`
-
-Lists the files and folders within a directory.
-
-- `path`: The path to the directory you wish to read
-- `opts`
-  - `recursive`: Set to `true` to list subdirectories, too
-  - `stat`: Get the `Stat` objects instead of names.
-- `list`: Either a list of the file/folder names or a list of the Stat object for those items.
-
-#### `await archive.writeFile(path, data, opts)`
-
-Write a file to your archive.
-
-- `path`: The location to write your file to.
-- `data`: Either a string or ArrayBuffer for the data you wish to save
-- `opts.encoding`: The encoding to use when writing. Must be one of `utf8`, `base64`, `hex`, or `binary`. Encoding will default to `utf8` for strings, and `binary` for ArrayBuffers.
-
-#### `await archive.mkdir(path)`
-
-Create a directory at the given path. Will fail if the parent directory doesn't exist.
-
-- `path`: The path to the directory
-
-#### `await archive.unlink(path)`
-
-Delete the file at the given path.
-
-- `path`: The path to the file
-
-#### `await rmdir(path, opts)`
-
-Deletes the directory at the given path.
-
-- `path`: The path to the directory
-- `opts.recursive`: Whether to delete subfolders / files.
-
-#### `await archive.copy(path, dstPath)`
-
-Copy a file from one location to another.
-
-- `path`: The path to the file / directory to copy from.
-- `dstPath`: The location the file/directory should be copied to
-
-#### `await archive.rename(oldPath, newPath)`
-
-Rename / move a file or directory.
-
-- `oldPath`: The path of the file/directory to rename
-- `newPath`: What the file/directory should be renamed to.
-
-#### `const history = await archive.history({opts})`
-
-List the history of all the changes in this archive.
-
-- `opts`: The options for how to fetch the history of the archive
-  - `start`: Where in the history to start reading
-  - `end`: Where in the history to stop reading
-  - `reverse`: Set to `true` to iterate through the history backwards
-- `history`: An array of history items representing changes
-  - `path`: Which file / directory got modified.
-  - `version`: The version number the archive was at for this item
-  - `type`: Either `put` for additions or `del` for deletions
-
-#### `const olderArchive = archive.checkout(version)`
-
-Get a view of the archive as it was at an earlier version.
-
-- `version`: The integer representing the version you whish to look at. This correlates to the version in the history.
-
-#### `await archive.download(path)`
-
-Download the file or folder at the given path from the network. Use `/` to download the entire archive.
-
-#### `const events = archive.watch(pattern, onInvalidated)`
-
-```js
-const events = archive.watch(['**/*.md'])
-events.addEventListener('changed', ({path}) => console.log(path, 'changed!'))
-
-events.close() // Stop listening for changes
-```
-
-Watch for changes in the archive.
-
-- `pattern`: This can either be omitted to view all changes, or have an [anymatch](https://www.npmjs.com/package/anymatch) pattern to filter out just the changes you want.
-- `onInvalidated`: You can optionally pass in this function to listen for changes instead of using an event listener.
-
-#### `archive.addEventListener('network-changed', ({peers}) => void 0)`
-
-Listen for changes in the number of peers connected to for the archive.
-
-- `peers`: The number of connected peers
-
-#### `archive.addEventListener('download', ({feed, block, bytes}) => void 0)`
-
-Listen for download progress from the archive
-
-- `feed`: The data feed the block was part of. Either `metadata` or `content`
-- `block`: The index of the block downloaded
-- `bytes`: The size of the block in bytes
-
-#### `archive.addEventListener('upload', ({feed, block, bytes}) => void 0)`
-
-Listen for upload progress from the archive.
-
-- `feed`: The data feed the block was part of. Either `metadata` or `content`
-- `block`: The index of the block uploaded
-- `bytes`: The size of the block in bytes
-
-#### `archive.addEventListener('sync', ({feed}) => void 0)`
-
-Emitted when all known data has been downloaded
-
-## API (Callbacks)
-
-### `const {Hypercore, Hyperdrive, resolveName, deleteStorage, destroy} = SDK({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts })`
+### `const {Hypercore, Hyperdrive, resolveName, close} = await SDK(opts?)`
 
 Creates an instance of the Dat SDK based on the options.
 
-- `storageOpts`: This lets you configure how the SDK will store data. Used by the [universal-dat-storage](https://github.com/RangerMauve/universal-dat-storage) module.
-  - `application: 'dat'`: The name of the application using the SDK if you want to have the data stored separately. Used by [env-paths](https://github.com/sindresorhus/env-paths#pathsdata) to generate the storageLocation
-  - `storageLocation: null`: A location (on disk) to store the archives in.
-- `swarmOpts`: This lets you configure [discovery-swarm](https://www.npmjs.com/package/discovery-swarm) and [discovery-swarm-web](https://www.npmjs.com/package/discovery-swarm-web)
-  - `id`: The ID to use when doing p2p traffic
-  - `maxConnections`: The maximum number of connections to keep for this swarm.
-  - `extensions: []`: The set of extension messages to use when replicating with peers
-  - `utp: true`: Whether to use utp in discovery-swarm
-  - `tcp: true`: Whether to use tcp in discovery-swarm
-  - `bootstrap: ['signal.mauve.moe']`: The WebRTC bootstrap server list used by discovery-swarm-web
-  - `discovery: 'discoveryswarm.mauve.moe'`: The proxy server used by discovery-swarm-web
-- `driveOpts`: This lets you configure the behavior of [Hyperdrive](https://github.com/mafintosh/hyperdrive) instances
+- `opts.storage`: An optional [random-access-storage](https://github.com/random-access-storage/random-access-storage) instance for storing data.
+- `opts.applicationName`: An optional name for the application using the SDK. This will automatically silo your data from other applications using the SDK and will store it in the appropriate place using [random-access-application](https://github.com/RangerMauve/random-access-application/)
+- `opts.corestore`: An optional [Corestore](https://github.com/andrewosh/corestore) instance for using as hypercore storage.
+- `opts.corestoreOpts`: Options to pass into Corestore when it's initialized.
+- `opts.swarmOpts`: This lets you configure [hyperswarm](https://github.com/hyperswarm/hyperswarm) and [hyperswarm-web](https://github.com/RangerMauve/hyperswarm-web)
+  - `maxPeers`: The maximum number of connections to keep for this swarm.
+  - `ephemeral **NODE**`: Set to `false` if this is going to be in a long running process on a server. 
+  - `bootstap **NODE**`: An array of addresses to use for the DHT bootstraping
+  - `webrtcBootstrap: ['https://geut-webrtc-signal.herokuapp.com/'] **BROWSER**`: The WebRTC bootstrap server list used by [discovery-swarm-webrtc](https://github.com/geut/discovery-swarm-webrtc)
+  - `wsProxy: 'wss://hyperswarm.mauve.moe' **BROWSER**`: The Websocket proxy used for [hyperswarm-proxy-ws](https://github.com/RangerMauve/hyperswarm-proxy-ws)
+- `opts.driveOpts`: This lets you configure the behavior of [Hyperdrive](https://github.com/mafintosh/hyperdrive) instances
   - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
   - `persist: true`: Whether the data should be persisted to storage. Set to false to create in-memory archives
-  - `extensions`: The set of extension message types to use with this archive when replicating.
-- `coreOpts`: This lets you configure the behavior of [Hypercore](https://github.com/mafintosh/hypercore) instances
+- `opts.coreOpts`: This lets you configure the behavior of [Hypercore](https://github.com/mafintosh/hypercore) instances
   - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
   - `persist: true`: Whether the data should be persisted to storage. Set to false to create in-memory feeds
   - `extensions`: The set of extension message types to use with this feed when replicating.
   - `valueEncoding: 'json' | 'utf-8' | 'binary'`: The encoding to use for the data stored in the hypercore. Use JSON to store / retrieve objects.
-- `dnsOpts`: Configure the [dat dns](https://github.com/datprotocol/dat-dns) resolution module. You probably shouldn't mess with this.
+- `opts.dnsOpts`: Configure the [dat dns](https://github.com/datprotocol/dat-dns) resolution module. You probably shouldn't mess with this.
   - `recordName: 'dat'`: name of .well-known file
   - `protocolRegex: /^dat:\/\/([0-9a-f]{64})/i`: RegExp object for custom protocol
   - `hashRegex: /^[0-9a-f]{64}?$/i`: RegExp object for custom hash i.e.
   - `txtRegex: /"?datkey=([0-9a-f]{64})"?/i`: RegExp object for DNS TXT record of custom protocol
 
-### `destroy(cb)`
+### `await close()`
 
 This closes all resources used by the SDK so you can safely end your process. `cb` will be invoked once resources are closed or if there's an error.
 
-### `resolveName(url, cb(err, key))`
+### `const key = await resolveName(url)`
 
 Resolve a DNS name to a Dat key.
 
   - `url` is a Dat URL like `dat://dat.foundation`
-  - `cb` will get invoked with the result of the resolve
   - `key` will be the Dat key that you can pass to `hyperdrive`
-  - `err` will be any errors that happen during resolution
 
-### `deleteStorage(key, cb)`
-
-Delete the storage for a given archive or hypercore key.
-
-- `key` should be the key for the hypercore or hyperdrive that should be deleted
-- `cb` will be invoked after the deletion is over.
-
-### `const archive = Hyperdrive(location, opts)`
+### `const archive = Hyperdrive(keyOrName, opts)`
 
 This initializes a Hyperdrive (aka a Dat archive), the SDK will begin finding peers for it and will de-duplicate calls to initializing the same archive more than once.
 
-- `location`: This **must** be provided. It's either a path for where the archive should be stored, or a Dat URL / key. If this is null, a new key will be generated.
+- `keyOrName`: This **must** be provided. It's either a Dat URL / key or a string identifying the name. If you want to have a writable archive, you can use the name to generate one and use the name later to get the same archive back without having to save the key somewhere.
 - `opts`: These are the options for configuring the hyperdrive.
   - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
   - `persist: true`: Whether the data should be persisted to storage. Set to false to create in-memory archives
-  - `extensions`: The set of extension message types to use with this archive when replicating.
   - `secretKey`: A secret key for granting write access. This can be useful when restoring backups.
+	- `discoveryKey`: Optionally specify which discovery key you'd like to use for finding peers for this archive.
+	- `lookup: true`: Specify whether you wish to lookup peers for this archive.
+	- `announce: true`: Specify whether you wish to advertise yourself as having the archive.
 
-The rest of the Hyperdrive docs were taken from the [Hyperdrive README](https://github.com/mafintosh/hyperdrive/blob/v9/README.md)
+The rest of the Hyperdrive docs were taken from the [Hyperdrive README](https://github.com/mafintosh/hyperdrive/blob/v9/README.md). Note that we're wrapping over the APIs with [Hyperdrive-Promise](https://github.com/geut/hyperdrive-promise) so any callback methods can be `await`ed instead.
 
 #### `archive.version`
 
@@ -591,10 +292,13 @@ Emitted when a critical error during load happened.
 
 Emitted when the archive has been closed
 
-#### `archive.on('extension', name, message, peer)`
+### `archive.on('peer-add', peer)`
 
-Emitted when a peer sends you an extension message with `archive.extension()`.
-You can respond with `peer.extension(name, message)`.
+Emitted when a new peer has started replicating wiht the archive.
+
+### `archive.on('peer-remove', peer)`
+
+Emitted when a peer has stopped replicating wit the archive.
 
 #### `var oldDrive = archive.checkout(version, [opts])`
 
@@ -608,7 +312,7 @@ Checkout a readonly copy of the archive at an old version. Options are used to c
 }
 ```
 
-#### `archive.download([path], [callback])`
+#### `await archive.download([path])`
 
 Download all files in path of current version.
 If no path is specified this will download all files.
@@ -622,10 +326,6 @@ archive.checkout(version).download()
 #### `var stream = archive.history([options])`
 
 Get a stream of all changes and their versions from this archive.
-
-#### `archive.extension(name, message)`
-
-Send an extension message to connected peers. [Read more in the hypercore docs](https://github.com/mafintosh/hypercore#feedextensionname-message).
 
 #### `var stream = archive.createReadStream(name, [options])`
 
@@ -641,7 +341,7 @@ Options include:
 }
 ```
 
-#### `archive.readFile(name, [options], callback)`
+#### `const data = await archive.readFile(name, [options])`
 
 Read an entire file into memory. Similar to fs.readFile.
 
@@ -677,23 +377,23 @@ Diff this archive with another version. `version` can both be a version number o
 Write a file as a stream. Similar to fs.createWriteStream.
 If `options.cached` is set to `true`, this function returns results only if they have already been downloaded.
 
-#### `archive.writeFile(name, buffer, [options], [callback])`
+#### `await archive.writeFile(name, buffer, [options])`
 
 Write a file from a single buffer. Similar to fs.writeFile.
 
-#### `archive.unlink(name, [callback])`
+#### `await archive.unlink(name)`
 
 Unlinks (deletes) a file. Similar to fs.unlink.
 
-#### `archive.mkdir(name, [options], [callback])`
+#### `await archive.mkdir(name, [options])`
 
 Explictly create an directory. Similar to fs.mkdir
 
-#### `archive.rmdir(name, [callback])`
+#### `await archive.rmdir(name)`
 
 Delete an empty directory. Similar to fs.rmdir.
 
-#### `archive.readdir(name, [options], [callback])`
+#### `const names = await archive.readdir(name, [options])`
 
 Lists a directory. Similar to fs.readdir.
 
@@ -707,7 +407,7 @@ Options include:
 
 If `cached` is set to `true`, this function returns results from the local version of the archive’s append-tree. Default behavior is to fetch the latest remote version of the archive before returning list of directories.
 
-#### `archive.stat(name, [options], callback)`
+#### `const stat = await archive.stat(name, [options])`
 
 Stat an entry. Similar to fs.stat. Sample output:
 
@@ -750,7 +450,7 @@ If `cached` is set to `true`, this function returns results only if they have al
 
 If `wait` is set to `true`, this function will wait for data to be downloaded. If false, will return an error.
 
-#### `archive.lstat(name, [options], callback)`
+#### `await archive.lstat(name, [options])`
 
 Stat an entry but do not follow symlinks. Similar to fs.lstat.
 
@@ -766,7 +466,7 @@ If `cached` is set to `true`, this function returns results only if they have al
 
 If `wait` is set to `true`, this function will wait for data to be downloaded. If false, will return an error.
 
-#### `archive.access(name, [options], callback)`
+#### `await archive.access(name, [options])`
 
 Similar to fs.access.
 
@@ -782,44 +482,46 @@ If `cached` is set to `true`, this function returns results only if they have al
 
 If `wait` is set to `true`, this function will wait for data to be downloaded. If false, will return an error.
 
-#### `archive.open(name, flags, [mode], callback)`
+#### `const fd = await archive.open(name, flags, [mode])`
 
 Open a file and get a file descriptor back. Similar to fs.open.
 
 Note that currently only read mode is supported in this API.
 
-#### `archive.read(fd, buf, offset, len, position, callback)`
+#### `await archive.read(fd, buf, offset, len, position)`
 
 Read from a file descriptor into a buffer. Similar to fs.read.
 
-#### `archive.close(fd, [callback])`
+#### `await archive.close(fd)`
 
 Close a file. Similar to fs.close.
 
-#### `archive.close([callback])`
+#### `await archive.close()`
 
 Closes all open resources used by the archive.
 The archive should no longer be used after calling this.
 
-### `const feed = Hypercore(key, opts)`
+### `const feed = Hypercore(keyOrName, opts)`
 
 Initializes a Hypercore (aka Feed) and begins replicating it.
 
-- `key`: This is the dat key for the feed, you can omit it if you want to create a new hypercore instance
+- `keyOrName`: This **must** be provided. It's either a Dat URL / key or a string identifying the name of the feed. If you want to have a writable feed, you can use the name to generate one and use the name later to get the same feed back without having to save the key somewhere.
 - `opts`: The options for configuring this feed
   - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
   - `persist: true`: Whether the data should be persisted to storage. Set to false to create in-memory feeds
-  - `extensions`: The set of extension message types to use with this feed when replicating.
   - `valueEncoding: 'json' | 'utf-8' | 'binary'`: The encoding to use for the data stored in the hypercore. Use JSON to store / retrieve objects.
   - `secretKey`: The secret key to use for the feed. Useful for restoring from backups.
+	- `discoveryKey`: Optionally specify which discovery key you'd like to use for finding peers for this feed.
+	- `lookup: true`: Specify whether you wish to lookup peers for this feed.
+	- `announce: true`: Specify whether you wish to advertise yourself as having the feed.
 
-#### `feed.append(data, [callback])`
+#### `const seq = await feed.append(data)`
 
 Append a block of data to the feed.
 
 Callback is called with `(err, seq)` when all data has been written at the returned `seq` or an error occurred.
 
-#### `feed.get(index, [options], callback)`
+#### `const data = await feed.get(index, [options])`
 
 Get a block of data.
 If the data is not available locally this method will prioritize and wait for the data to be downloaded before calling the callback.
@@ -836,7 +538,7 @@ Options include
 
 Callback is called with `(err, data)`
 
-#### `feed.getBatch(start, end, [options], callback)`
+#### `const results = await feed.getBatch(start, end, [options])`
 
 Get a range of blocks efficiently. Options include
 
@@ -848,14 +550,14 @@ Get a range of blocks efficiently. Options include
 }
 ```
 
-#### `feed.head([options], callback)`
+#### `const data = await feed.head([options])`
 
 Get the block of data at the tip of the feed. This will be the most recently
 appended block.
 
 Accepts the same `options` as `feed.get()`.
 
-#### `feed.download([range], [callback])`
+#### `await feed.download([range])`
 
 Download a range of data. Callback is called when all data has been downloaded.
 A range can have the following properties:
@@ -873,11 +575,11 @@ If you do not mark a range the entire feed will be marked for download.
 If you have not enabled sparse mode (`sparse: true` in the feed constructor) then the entire
 feed will be marked for download for you when the feed is created.
 
-#### `feed.undownload(range)`
+#### `await feed.undownload(range)`
 
 Cancel a previous download request.
 
-#### `feed.signature([index], callback)`
+#### `const signature = await feed.signature([index])`
 
 Get a signature proving the correctness of the block at index, or the whole stream.
 
@@ -890,7 +592,7 @@ The signature has the following properties:
 }
 ```
 
-#### `feed.verify(index, signature, callback)`
+#### `const success = await feed.verify(index, signature)`
 
 Verify a signature is correct for the data up to index, which must be the last signed
 block associated with the signature.
@@ -898,7 +600,7 @@ block associated with the signature.
 Callback is called with `(err, success)` where success is true only if the signature is
 correct.
 
-#### `feed.rootHashes(index, callback)`
+#### `const roots = await feed.rootHashes(index)`
 
 Retrieve the root *hashes* for given `index`.
 
@@ -927,7 +629,7 @@ False otherwise.
 Return true if all data blocks within a range are available locally.
 False otherwise.
 
-#### `feed.clear(start, [end], [callback])`
+#### `await feed.clear(start, [end])`
 
 Clear a range of data from the local cache.
 Will clear the data from the bitfield and make a call to the underlying storage provider to delete the byte range the range occupies.
@@ -941,7 +643,7 @@ Seek to a byte offset.
 Calls the callback with `(err, index, relativeOffset)`, where `index` is the data block the byteOffset is contained in and `relativeOffset` is
 the relative byte offset in the data block.
 
-#### `feed.update([minLength], [callback])`
+#### `await feed.update([minLength])`
 
 Wait for the feed to contain at least `minLength` elements.
 If you do not provide `minLength` it will be set to current length + 1.
@@ -977,13 +679,13 @@ Options include:
 
 Create a writable stream.
 
-#### `feed.close([callback])`
+#### `await feed.close()`
 
 Fully close this feed.
 
 Calls the callback with `(err)` when all storage has been closed.
 
-#### `feed.audit([callback])`
+#### `const {valid, invalid} = await feed.audit()`
 
 Audit all data in the feed. Will check that all current data stored
 matches the hashes in the merkle tree and clear the bitfield if not.
@@ -998,6 +700,16 @@ When done a report is passed to the callback that looks like this:
 ```
 
 If a block does not match the hash it is cleared from the data bitfield.
+
+### `const extension = feed.registerExtension(name, handlers)`
+
+Listens on extension messages of type `name` on the feeds replication channels.
+
+- `handlers.encoding`: The encoding to use for messages. `json`, `binary`, 'utf8'
+- `handlers.onmessage(message, peer)`: Function to invoke when a peer sends you a message for this extension type.
+- `handlers.onerror(err, peer)`: Function to invoke when a peer has sent you a mis-coded message on this extension.
+
+You can respond to messages with `extension.send(message, peer)`.
 
 #### `feed.writable`
 
@@ -1090,6 +802,15 @@ Emitted every time ALL data from `0` to `feed.length` has been downloaded.
 #### `feed.on('close')`
 
 Emitted when the feed has been fully closed
+
+### `feed.on('peer-add', peer)`
+
+Emitted when a new peer has started replicating with the feed.
+
+### `feed.on('peer-remove', peer)`
+
+Emitted when a peer has stopped replicating with the feed.
+
 
 ---
 
