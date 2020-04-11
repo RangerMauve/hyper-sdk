@@ -501,6 +501,11 @@ Close a file. Similar to fs.close.
 Closes all open resources used by the archive.
 The archive should no longer be used after calling this.
 
+#### `await archive.destroyData()`
+
+Closes all resources used by the archive, and destroys its data from storage.
+The archive should no longer be used after calling this.
+
 ### `const feed = Hypercore(keyOrName, opts)`
 
 Initializes a Hypercore (aka Feed) and begins replicating it.
@@ -684,6 +689,10 @@ Create a writable stream.
 Fully close this feed.
 
 Calls the callback with `(err)` when all storage has been closed.
+
+### `await feed.destroyData()`
+
+Closes the feed and deletes all of it's data from storage.
 
 #### `const {valid, invalid} = await feed.audit()`
 
