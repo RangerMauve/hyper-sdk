@@ -80,7 +80,6 @@ async function SDK ({
     Hypercore,
     resolveName,
     getIdentity,
-    deleteStorage,
     close,
     _storage: storage,
     _corestore: corestore,
@@ -106,12 +105,6 @@ async function SDK ({
 
   function resolveName (url, cb) {
     return dns.resolveName(url, cb)
-  }
-
-  function deleteStorage (key, cb) {
-    // Figure this out later?
-    // Might need something in hypercore?
-    storage.delete(key, cb)
   }
 
   function Hyperdrive (nameOrKey, opts) {

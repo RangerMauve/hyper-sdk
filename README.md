@@ -18,7 +18,7 @@ The Dat SDK combines the lower level pieces of the Dat ecosystem into high level
   - ✔ Electron
   - React-Native (with [nodejs-mobile-react-native?](https://github.com/janeasystems/nodejs-mobile-react-native))
 
-## Installing
+## Installing Node
 
 [Node.js](https://nodejs.org/) / [Browserify](http://browserify.org/) workflows:
 
@@ -30,17 +30,43 @@ npm install --save dat-sdk@next
 const SDK = require('dat-sdk')
 ```
 
-Or Web Browsers
+## Building a bundle for Browsers
+
+```shell
+git clone git@github.com:datproject/sdk.git
+
+cd sdk
+
+# Compile the SDK into a single JS file
+npm run build
+
+# Copy `dat-sdk-bundle.js` into your project
+```
 
 ```html
-<script src="https://bundle.run/dat-sdk@next"></script>
+<script src="dat-sdk-bundle.js"></script>
 <script>
   const SDK = window.datSDK
   // Look at the examples from here
 </script>
 ```
 
-## Examples (webpack.config.js)
+## Compile with Browserify
+
+```
+npm install --save-dev browserify
+npm install --save dat-sdk@next
+```
+
+Add this as the `build` command in your package.json
+
+```shell
+browserify index.js > bundle.js
+```
+
+Then you can use `bundle.js` in your project.
+
+## Compile with Webpack (webpack.config.js)
 
 To bundle with webpack, you'll need to alias some dependencies.
 
@@ -206,7 +232,7 @@ trie.put('key', 'value', () => {
 
 The API supports both promises and callbacks. Everywhere where you see `await`, you can instead pass a node-style callback.
 
-### `const {Hypercore, Hyperdrive, resolveName, close} = await SDK(opts?)`
+### `const {Hypercore, Hyperdrive, resolveName, getIdentity, close} = await SDK(opts?)`
 
 Creates an instance of the Dat SDK based on the options.
 
@@ -244,6 +270,11 @@ Resolve a DNS name to a Dat key.
 
   - `url` is a Dat URL like `dat://dat.foundation`
   - `key` will be the Dat key that you can pass to `hyperdrive`
+
+### `const {publicKey, secretKey} = await getIdentity()`
+
+This gives you the public / private keypair used for the Noise protocol encryption when connecting to peers.
+You can use this to identify peers in the network using `peer.remotePublicKey`
 
 ### `const archive = Hyperdrive(keyOrName, opts)`
 

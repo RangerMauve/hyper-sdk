@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "node test",
+    "build": "cross-env BABEL_DISABLE_CACHE=1 browserify index.js > dat-sdk-bundle.js",
     "build-test": "cross-env BABEL_DISABLE_CACHE=1 browserify -t [ babelify --global ] -d test.js > test-bundle.js"
   },
   "repository": {
@@ -29,7 +30,18 @@
     "sodium-native": "@geut/sodium-javascript-plus",
     "sodium-universal": "@geut/sodium-javascript-plus"
   },
+  "browserify": {
+		"transform": [
+			["babelify", {"global": true}]
+		]
+  },
   "homepage": "https://github.com/datproject/sdk#readme",
+  "files": [
+		"README.md",
+		"index.js",
+		"dns-web.js",
+		"babel.config.json"
+  ],
   "dependencies": {
     "@geut/hypercore-promise": "^1.1.0",
     "@geut/hyperdrive-promise": "^3.0.0",
