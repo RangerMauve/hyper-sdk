@@ -69,7 +69,7 @@ async function SDK ({
 
   // I think this is used to create a persisted identity?
   // Needs to be created before the swarm so that it can be passed in
-  const noiseSeed = corestore._deriveSecret(applicationName, 'replication-keypair')
+  const noiseSeed = await deriveSecret(applicationName, 'replication-keypair')
   const keyPair = HypercoreProtocol.keyPair(noiseSeed)
 
   const swarm = new SwarmNetworker(corestore, Object.assign({ keyPair }, DEFAULT_SWARM_OPTS, swarmOpts))
@@ -80,11 +80,16 @@ async function SDK ({
     Hypercore,
     resolveName,
     getIdentity,
+    deriveSecret,
     close,
     _storage: storage,
     _corestore: corestore,
     _swarm: swarm,
     _dns: dns
+  }
+
+  async function deriveSecret (namespace, name) {
+    return corestore._deriveSecret(namespace, name)
   }
 
   async function getIdentity () {

@@ -232,7 +232,7 @@ trie.put('key', 'value', () => {
 
 The API supports both promises and callbacks. Everywhere where you see `await`, you can instead pass a node-style callback.
 
-### `const {Hypercore, Hyperdrive, resolveName, getIdentity, close} = await SDK(opts?)`
+### `const {Hypercore, Hyperdrive, resolveName, getIdentity, deriveSecret, close} = await SDK(opts?)`
 
 Creates an instance of the Dat SDK based on the options.
 
@@ -275,6 +275,12 @@ Resolve a DNS name to a Dat key.
 
 This gives you the public / private keypair used for the Noise protocol encryption when connecting to peers.
 You can use this to identify peers in the network using `peer.remotePublicKey`
+
+### `const secret = await deriveSecret(namespace, name)`
+
+Derives a secret key based on the SDK's master key.
+`namespace` can be used to namespace different applications, and `name` is the name of the key you want.
+This can be used as a seed for generating secure private keys without needing to store an extra key on disk.
 
 ### `const archive = Hyperdrive(keyOrName, opts)`
 
