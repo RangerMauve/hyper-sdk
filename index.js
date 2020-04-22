@@ -160,7 +160,7 @@ async function SDK ({
         announce = true
       } = opts
       // Don't advertise if we're not looking up or announcing
-      if(!lookup && !announce) return
+      if (!lookup && !announce) return
       swarm.join(discoveryKey, { lookup, announce })
     })
 
@@ -246,7 +246,7 @@ async function SDK ({
       } = opts
 
       // Don't advertise if we're not looking up or announcing
-      if(!lookup && !announce) return
+      if (!lookup && !announce) return
       swarm.join(discoveryKey, { announce, lookup })
     })
 
