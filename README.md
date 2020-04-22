@@ -292,7 +292,7 @@ This initializes a Hyperdrive (aka a Dat archive), the SDK will begin finding pe
   - `persist: true`: Whether the data should be persisted to storage. Set to false to create in-memory archives
   - `secretKey`: A secret key for granting write access. This can be useful when restoring backups.
 	- `discoveryKey`: Optionally specify which discovery key you'd like to use for finding peers for this archive.
-	- `lookup: true`: Specify whether you wish to lookup peers for this archive.
+	- `lookup: true`: Specify whether you wish to lookup peers for this archive. Set `false` along with `announce` to avoid advertising
 	- `announce: true`: Specify whether you wish to advertise yourself as having the archive.
 
 The rest of the Hyperdrive docs were taken from the [Hyperdrive README](https://github.com/mafintosh/hyperdrive/blob/v9/README.md). Note that we're wrapping over the APIs with [Hyperdrive-Promise](https://github.com/geut/hyperdrive-promise) so any callback methods can be `await`ed instead.
@@ -554,7 +554,7 @@ Initializes a Hypercore (aka Feed) and begins replicating it.
   - `valueEncoding: 'json' | 'utf-8' | 'binary'`: The encoding to use for the data stored in the hypercore. Use JSON to store / retrieve objects.
   - `secretKey`: The secret key to use for the feed. Useful for restoring from backups.
 	- `discoveryKey`: Optionally specify which discovery key you'd like to use for finding peers for this feed.
-	- `lookup: true`: Specify whether you wish to lookup peers for this feed.
+	- `lookup: true`: Specify whether you wish to lookup peers for this feed. Set to `false` along with `announce` to avoid advertising.
 	- `announce: true`: Specify whether you wish to advertise yourself as having the feed.
 
 #### `const seq = await feed.append(data)`
