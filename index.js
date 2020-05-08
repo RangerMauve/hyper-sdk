@@ -144,6 +144,17 @@ async function SDK ({
 
     const drive = makeHyperdrivePromise(makeHyperdrive(driveStorage, key, opts))
 
+    if (driveStorage !== corestore) {
+      drive.ready(() => {
+        for (const core of drive.corestore.store.list().values()) {
+          trackMemoryCore(core)
+        }
+        drive.corestore.store.on('feed', (core) => {
+          trackMemoryCore(core)
+        })
+      })
+    }
+
     drives.set(nameOrKey, drive)
     if (!key) {
       drive.ready(() => {
@@ -216,6 +227,8 @@ async function SDK ({
         opts.secretKey = secretKey
       }
       core = makeHypercore(coreStorage, key, opts)
+
+      trackMemoryCore(core)
     } else {
       if (key) {
         // If a dat key was provided, get it from the corestore
@@ -262,5 +275,18 @@ async function SDK ({
     })
 
     return core
+  }
+
+  function trackMemoryCore (core) {
+    core.ready(() => {
+      corestore._injectIntoReplicationStreams(core)
+      corestore.emit('feed', core)
+    })
+
+    core.once('close', () => {
+      corestore._uncacheCore(core, core.discoveryKey)
+    })
+
+    corestore._cacheCore(core, core.discoveryKey, { external: true })
   }
 }
