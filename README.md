@@ -124,43 +124,31 @@ const archive = Hyperdrive('My archive name', {
   storage: null  //storage: RAI
 })
 
-archive.ready(() => {
-  const url = `dat://${archive.key.toString('hex')}`
+// You should wait for the archive to be totally initialized
+await archive.ready()
 
-  // TODO: Save this for later!
-  console.log(`Here's your URL: ${url}`)
+const url = `dat://${archive.key.toString('hex')}`
 
-  // Check out the hyperdrive docs for what you can do with it
-  // https://www.npmjs.com/package/hyperdrive#api
-  archive.writeFile('/example.txt', 'Hello World!', () => {
-    console.log('Written example file!')
-  })
-})
+// TODO: Save this for later!
+console.log(`Here's your URL: ${url}`)
+
+// Check out the hyperdrive docs for what you can do with it
+// https://www.npmjs.com/package/hyperdrive#api
+await archive.writeFile('/example.txt', 'Hello World!')
+console.log('Written example file!')
 
 // This example is currently broken because Beaker's website isn't on Dat 2 yet
-resolveName('dat://beakerbrowser.com', (err, key) => {
-  if (err) throw err
-  const archive = Hyperdrive(key)
-
-  archive.readFile('/dat.json', 'utf8', (err, data) => {
-    if (err) throw err
-    console.log(`Beaker's dat.json is ${data}`)
-
-    archive.close((err) => {
-      if (err) throw err
-      deleteStorage(archive.key, (e) => {
-        if (e) throw e
-        console.log('Deleted beaker storage')
-      })
-    })
-  })
-})
+const key = await resolveName('dat://beakerbrowser.com')
+const archive = Hyperdrive(key)
+await archive.download()
+// Pure all the data
+await archive.destroyStorage()
 
 const SOME_URL = 'dat://0a9e202b8055721bd2bc93b3c9bbc03efdbda9cfee91f01a123fdeaadeba303e/'
 
 const someArchive = Hyperdrive(SOME_URL)
 
-someArchive.readdir('/', console.log)}
+console.log(await someArchive.readdir('/'))
 
 // Create a hypercore
 // Check out the hypercore docs for what you can do with it
@@ -176,36 +164,36 @@ const myCore = Hypercore('my hypercore name', {
 })
 
 // Add some data to it
-myCore.append(JSON.stringify({
+await myCore.append(JSON.stringify({
   name: 'Alice'
-}), () => {
-  // Use extension messages for sending extra data over the p2p connection
-  const discoveryCoreKey = 'dat://bee80ff3a4ee5e727dc44197cb9d25bf8f19d50b0f3ad2984cfe5b7d14e75de7'
-  const discoveryCore = new Hypercore(discoveryCoreKey)
+})
 
-	// Register the extension message handler
-	const extension = discoveryCore.registerExtension('discovery', {
-		// Set the encoding type for messages
-		encoding: 'binary',
-		onmessage: (message, peer) => {
-			// Recieved messages will be automatically decoded
-			console.log('Got key from peer!', message)
+// Use extension messages for sending extra data over the p2p connection
+const discoveryCoreKey = 'dat://bee80ff3a4ee5e727dc44197cb9d25bf8f19d50b0f3ad2984cfe5b7d14e75de7'
+const discoveryCore = new Hypercore(discoveryCoreKey)
 
-			const otherCore = new Hypercore(message, {
-        valueEncoding: 'json',
-        persist: false
-      })
+// Register the extension message handler
+const extension = discoveryCore.registerExtension('discovery', {
+	// Set the encoding type for messages
+	encoding: 'binary',
+	onmessage: (message, peer) => {
+		// Recieved messages will be automatically decoded
+		console.log('Got key from peer!', message)
 
-      // Render the peer's data from their core
-      otherCore.get(0, console.log)
-		}
-	})
+		const otherCore = new Hypercore(message, {
+      valueEncoding: 'json',
+      persist: false
+    })
 
-	// When you find a peer tell them about your core
-	discoveryCore.on('peer-add', (peer) => {
-		console.log('Got a peer!')
-		extension.send(myCore.key, peer)
-	})
+    // Render the peer's data from their core
+    otherCore.get(0, console.log)
+	}
+})
+
+// When you find a peer tell them about your core
+discoveryCore.on('peer-add', (peer) => {
+	console.log('Got a peer!')
+	extension.send(myCore.key, peer)
 })
 
 const hypertrie = require('hypertrie')
@@ -538,7 +526,7 @@ Close a file. Similar to fs.close.
 Closes all open resources used by the archive.
 The archive should no longer be used after calling this.
 
-#### `await archive.destroyData()`
+#### `await archive.destroyStorage()`
 
 Closes all resources used by the archive, and destroys its data from storage.
 The archive should no longer be used after calling this.
@@ -727,7 +715,7 @@ Fully close this feed.
 
 Calls the callback with `(err)` when all storage has been closed.
 
-#### `await feed.destroyData()`
+#### `await feed.destroyStorage()`
 
 Closes the feed and deletes all of it's data from storage.
 

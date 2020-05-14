@@ -142,7 +142,8 @@ async function SDK ({
       driveStorage = corestore
     }
 
-    const drive = makeHyperdrivePromise(makeHyperdrive(driveStorage, key, opts))
+    const drive = makeHyperdrive(driveStorage, key, opts)
+    const wrappedDrive = makeHyperdrivePromise(drive)
 
     if (driveStorage !== corestore) {
       drive.ready(() => {
@@ -155,12 +156,12 @@ async function SDK ({
       })
     }
 
-    drives.set(nameOrKey, drive)
+    drives.set(nameOrKey, wrappedDrive)
     if (!key) {
       drive.ready(() => {
         const key = drive.key
         const stringKey = key.toString('hex')
-        drives.set(stringKey, drive)
+        drives.set(stringKey, wrappedDrive)
       })
     }
 
@@ -186,7 +187,22 @@ async function SDK ({
       drives.delete(nameOrKey)
     })
 
-    return drive
+    if (!drive.destroyStorage) {
+      drive.destroyStorage = function (cb) {
+        const metadata = this.db.feed
+        this._getContent(metadata, (err, contentState) => {
+          if (err) return cb(err)
+          const content = contentState.feed
+          metadata.destroyStorage(() => {
+            content.destroyStorage(() => {
+              this.close(cb)
+            })
+          })
+        })
+      }
+    }
+
+    return wrappedDrive
   }
 
   function Hypercore (nameOrKey, opts) {
