@@ -3,18 +3,20 @@ const path = require('path')
 // This is a dirty hack for browserify to work. 😅
 if (!path.posix) path.posix = path
 
-const discovery = require('hyperdiscovery')
-const datStorage = require('universal-dat-storage')
+const SwarmNetworker = require('corestore-swarm-networking')
+const RAA = require('random-access-application')
 const DatEncoding = require('dat-encoding')
 const crypto = require('hypercore-crypto')
 const RAM = require('random-access-memory')
-const fs = require('fs')
+const HypercoreProtocol = require('hypercore-protocol')
 
 const datDNS = require('dat-dns')
-const hyperdrive = require('hyperdrive')
-const hypercore = require('hypercore')
+const makeHyperdrive = require('hyperdrive')
+const Corestore = require('corestore')
+const makeHypercore = require('hypercore')
+const makeHypercorePromise = require('@geut/hypercore-promise')
+const makeHyperdrivePromise = require('@geut/hyperdrive-promise')
 
-const DEFAULT_STORAGE_OPTS = {}
 const DEFAULT_SWARM_OPTS = {
   extensions: []
 }
@@ -27,28 +29,74 @@ const DEFAULT_CORE_OPTS = {
   persist: true
 }
 const DEFAULT_DNS_OPTS = {}
+const DEFAULT_CORESTORE_OPTS = {
+  sparse: true
+}
+
+const DEFAULT_APPLICATION_NAME = 'dat-sdk'
 
 module.exports = SDK
 
-function SDK ({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts } = {}) {
-  const storage = datStorage(Object.assign({}, DEFAULT_STORAGE_OPTS, storageOpts))
-  const swarm = discovery(Object.assign({}, DEFAULT_SWARM_OPTS, swarmOpts))
-  const dns = datDNS(Object.assign({}, DEFAULT_DNS_OPTS, dnsOpts))
+// TODO: Set up Promise API based on Beaker https://github.com/beakerbrowser/beaker/blob/blue-hyperdrive10/app/bg/web-apis/fg/hyperdrive.js
+
+async function SDK ({
+  storage,
+  corestore,
+  applicationName = DEFAULT_APPLICATION_NAME,
+  swarmOpts,
+  driveOpts,
+  coreOpts,
+  dnsOpts,
+  corestoreOpts
+} = {}
+) {
+  // Derive storage if it isn't provided
+  // Don't derive if corestore was provided
+  if (!storage && !corestore) storage = RAA(applicationName)
+
+  if (!corestore) {
+    corestore = new Corestore(
+      storage,
+      Object.assign({}, DEFAULT_CORESTORE_OPTS, corestoreOpts)
+    )
+  }
 
   // Track list of hyperdrives
   const drives = new Map()
   const cores = new Map()
 
-  function addExtensions (extensions) {
-    if (!extensions || !extensions.length) return
-    // TODO: This has code smell
-    const currentExtensions = swarm._opts.extensions || []
-    const finalSet = new Set([...currentExtensions, ...extensions])
+  await corestore.ready()
 
-    swarm._opts.extensions = [...finalSet]
+  // I think this is used to create a persisted identity?
+  // Needs to be created before the swarm so that it can be passed in
+  const noiseSeed = await deriveSecret(applicationName, 'replication-keypair')
+  const keyPair = HypercoreProtocol.keyPair(noiseSeed)
+
+  const swarm = new SwarmNetworker(corestore, Object.assign({ keyPair }, DEFAULT_SWARM_OPTS, swarmOpts))
+  const dns = datDNS(Object.assign({}, DEFAULT_DNS_OPTS, dnsOpts))
+
+  return {
+    Hyperdrive,
+    Hypercore,
+    resolveName,
+    getIdentity,
+    deriveSecret,
+    close,
+    _storage: storage,
+    _corestore: corestore,
+    _swarm: swarm,
+    _dns: dns
   }
 
-  function destroy (cb) {
+  async function deriveSecret (namespace, name) {
+    return corestore._deriveSecret(namespace, name)
+  }
+
+  async function getIdentity () {
+    return keyPair
+  }
+
+  function close (cb) {
     for (const drive of drives.values()) {
       drive.close()
     }
@@ -64,141 +112,197 @@ function SDK ({ storageOpts, swarmOpts, driveOpts, coreOpts, dnsOpts } = {}) {
     return dns.resolveName(url, cb)
   }
 
-  function deleteStorage (key, cb) {
-    storage.delete(key, cb)
-  }
+  function Hyperdrive (nameOrKey, opts) {
+    if (!nameOrKey) throw new Error('Must give a name or key in the constructor')
 
-  function Hyperdrive (location, opts) {
     opts = Object.assign({}, DEFAULT_DRIVE_OPTS, driveOpts, opts)
-
-    addExtensions(opts.extensions)
 
     let key = null
 
-    if (!location) {
-      const { publicKey, secretKey } = crypto.keyPair()
-      key = publicKey
-      location = DatEncoding.encode(publicKey)
-      opts.secretKey = secretKey
-    }
-
     try {
-      key = DatEncoding.decode(location)
+      key = DatEncoding.decode(nameOrKey)
+      // Normalize keys to be hex strings of the key instead of dat URLs
+      nameOrKey = key.toString('hex')
     } catch (e) {
-      // Location must be relative path
+      // Probably isn't a `dat://` URL, so it must be a name
     }
 
-    const stringKey = key.toString('hex')
+    if (drives.has(nameOrKey)) return drives.get(nameOrKey)
 
-    if (drives.has(stringKey)) return drives.get(stringKey)
+    opts.namespace = nameOrKey
 
     const { persist } = opts
 
-    let driveStorage = null
-    try {
-      if (!persist) {
-        driveStorage = RAM
-      } else if (opts.storage) {
-        driveStorage = opts.storage(location)
-      } else {
-        driveStorage = storage.getDrive(location)
-      }
-    } catch (e) {
-      if (e.message !== 'Unable to create storage') throw e
-
-      // If the folder isn't a dat archive. Turn it into one.
-      const { publicKey, secretKey } = crypto.keyPair()
-      fs.writeFileSync(path.join(location, '.dat'), publicKey)
-      key = publicKey
-      location = DatEncoding.encode(publicKey)
-      opts.secretKey = secretKey
-
-      if (opts.storage) {
-        driveStorage = opts.storage(location)
-      } else {
-        driveStorage = storage.getDrive(location)
-      }
+    let driveStorage = corestore
+    if (!persist) {
+      driveStorage = RAM
+    } else if (opts.storage) {
+      driveStorage = opts.storage(key)
+    } else {
+      driveStorage = corestore
     }
 
-    const drive = hyperdrive(driveStorage, key, opts)
+    const drive = makeHyperdrive(driveStorage, key, opts)
+    const wrappedDrive = makeHyperdrivePromise(drive)
 
-    drives.set(stringKey, drive)
+    if (driveStorage !== corestore) {
+      drive.ready(() => {
+        for (const core of drive.corestore.store.list().values()) {
+          trackMemoryCore(core)
+        }
+        drive.corestore.store.on('feed', (core) => {
+          trackMemoryCore(core)
+        })
+      })
+    }
+
+    drives.set(nameOrKey, wrappedDrive)
+    if (!key) {
+      drive.ready(() => {
+        const key = drive.key
+        const stringKey = key.toString('hex')
+        drives.set(stringKey, wrappedDrive)
+      })
+    }
 
     drive.ready(() => {
-      swarm.add(drive)
+      const {
+        discoveryKey = drive.discoveryKey,
+        lookup = true,
+        announce = true
+      } = opts
+      // Don't advertise if we're not looking up or announcing
+      if (!lookup && !announce) return
+      swarm.join(discoveryKey, { lookup, announce })
     })
 
     drive.once('close', () => {
-      const discoveryKey = DatEncoding.encode(drive.discoveryKey)
+      const { discoveryKey = drive.discoveryKey } = opts
       swarm.leave(discoveryKey)
-      swarm._replicatingFeeds.delete(discoveryKey)
+
+      const key = drive.key
+      const stringKey = key.toString('hex')
+
       drives.delete(stringKey)
+      drives.delete(nameOrKey)
     })
 
-    return drive
+    if (!drive.destroyStorage) {
+      drive.destroyStorage = function (cb) {
+        const metadata = this.db.feed
+        this._getContent(metadata, (err, contentState) => {
+          if (err) return cb(err)
+          const content = contentState.feed
+          metadata.destroyStorage(() => {
+            content.destroyStorage(() => {
+              this.close(cb)
+            })
+          })
+        })
+      }
+    }
+
+    return wrappedDrive
   }
 
-  function Hypercore (location, opts) {
-    opts = Object.assign({}, DEFAULT_CORE_OPTS, coreOpts, opts)
+  function Hypercore (nameOrKey, opts) {
+    if (!nameOrKey) throw new Error('Must give a name or key in the constructor')
 
-    addExtensions(opts.extensions)
+    opts = Object.assign({}, DEFAULT_CORE_OPTS, driveOpts, opts)
 
     let key = null
 
-    if (!location) {
-      const { publicKey, secretKey } = crypto.keyPair()
-      key = publicKey
-      location = DatEncoding.encode(publicKey)
-      opts.secretKey = secretKey
-    }
-
     try {
-      key = DatEncoding.decode(location)
+      key = DatEncoding.decode(nameOrKey)
+      // Normalize keys to be hex strings of the key instead of dat URLs
+      nameOrKey = key.toString('hex')
     } catch (e) {
-      // Location must be relative path
+      // Probably isn't a `dat://` URL, so it must be a name
     }
 
-    const stringKey = location.toString('hex')
-
-    if (cores.has(stringKey)) return cores.get(stringKey)
+    if (cores.has(nameOrKey)) return cores.get(nameOrKey)
 
     const { persist } = opts
     let coreStorage = null
-    try {
-      if (!persist) {
-        coreStorage = RAM
-      } else if (opts.storage) {
-        coreStorage = opts.storage(location)
-      } else {
-        coreStorage = storage.getCore(location)
-      }
-    } catch (e) {
-      if (e.message !== 'Unable to create storage') throw e
+
+    if (!persist) {
+      coreStorage = RAM
+    } else if (opts.storage) {
+      coreStorage = opts.storage(key)
     }
 
-    const core = hypercore(coreStorage, key, opts)
+    let core = null
 
-    cores.set(stringKey, core)
+    // If sotrage was passed in the opts, use it. Else use the corestore
+    if (coreStorage) {
+      // We only want to generate keys if we have a custom storage
+      // Else the corestore does fancy key storage for us
+      if (!key) {
+        const { publicKey, secretKey } = crypto.keyPair()
+        key = publicKey
+        opts.secretKey = secretKey
+      }
+      core = makeHypercore(coreStorage, key, opts)
+
+      trackMemoryCore(core)
+    } else {
+      if (key) {
+        // If a dat key was provided, get it from the corestore
+        core = corestore.get({ ...opts, key })
+      } else {
+        // If no dat key was provided, but a name was given, use it as a namespace
+        core = corestore.namespace(nameOrKey).default(opts)
+      }
+    }
+
+    // Wrap with promises
+    core = makeHypercorePromise(core)
+
+    cores.set(nameOrKey, core)
+    if (!key) {
+      core.ready(() => {
+        const key = core.key
+        const stringKey = key.toString('hex')
+        cores.set(stringKey, core)
+      })
+    }
 
     core.ready(() => {
-      swarm.add(core)
+      const {
+        discoveryKey = core.discoveryKey,
+        lookup = true,
+        announce = true
+      } = opts
+
+      // Don't advertise if we're not looking up or announcing
+      if (!lookup && !announce) return
+      swarm.join(discoveryKey, { announce, lookup })
     })
 
     core.once('close', () => {
-      const discoveryKey = DatEncoding.encode(core.discoveryKey)
+      const { discoveryKey = core.discoveryKey } = opts
+      const key = core.key
+      const stringKey = key.toString('hex')
+
       swarm.leave(discoveryKey)
-      swarm._replicatingFeeds.delete(discoveryKey)
+
       cores.delete(stringKey)
+      cores.delete(nameOrKey)
     })
 
     return core
   }
 
-  return {
-    Hyperdrive,
-    Hypercore,
-    resolveName,
-    deleteStorage,
-    destroy
+  function trackMemoryCore (core) {
+    core.ready(() => {
+      corestore._injectIntoReplicationStreams(core)
+      corestore.emit('feed', core)
+    })
+
+    core.once('close', () => {
+      corestore._uncacheCore(core, core.discoveryKey)
+    })
+
+    corestore._cacheCore(core, core.discoveryKey, { external: true })
   }
 }

@@ -62,5 +62,5 @@ typings/
 
 package-lock.json
 test-bundle.js
-
-uls-scratch
+bundle.js
+dat-sdk-bundle.js

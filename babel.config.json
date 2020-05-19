@@ -1,0 +1,13 @@
+{
+  "plugins": [
+    ["module-resolver", {
+      "alias": {
+        "sodium-native": "@geut/sodium-javascript-plus",
+        "sodium-universal": "@geut/sodium-javascript-plus",
+        "dat-dns": "./dns-web.js",
+        "hyperswarm": "hyperswarm-web",
+        "util" : "./node_modules/util/util.js"
+      }
+    }]
+  ]
+}

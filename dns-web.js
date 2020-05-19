@@ -44,9 +44,11 @@ module.exports = ({
 
         const resolved = lines[0]
 
-        cache[domain] = resolved
+        const key = resolved.slice(DAT_PROTOCOL.length)
 
-        if (cb) cb(null, resolved)
+        cache[domain] = key
+
+        if (cb) cb(null, key)
       } catch (e) {
         if (cb) cb(e)
         else throw e

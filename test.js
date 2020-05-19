@@ -1,111 +1,189 @@
 const SDK = require('./')
 const test = require('tape')
+const RAA = require('random-access-application')
 
 const isBrowser = process.title === 'browser'
-const storageLocation = isBrowser ? '/' : require('tmp').dirSync({
-  prefix: 'universal-dat-storage-'
-}).name
 
-const { Hyperdrive, Hypercore, resolveName, destroy } = SDK({
-  storageOpts: {
-    storageLocation
+function getNewStorage () {
+  if (isBrowser) {
+    // Get a random number, use it for random-access-application
+    const name = Math.random().toString()
+    return RAA(name)
+  } else {
+    return require('tmp').dirSync({
+      prefix: 'dat-sdk-tests-'
+    }).name
   }
-})
+}
 
-const DATPROJECT_KEY = 'dat://60c525b5589a5099aa3610a8ee550dcd454c3e118f7ac93b7d41b6b850272330'
-const TEST_TIMEOUT = 10 * 1000
+run()
 
-test.onFinish(destroy)
-
-test('Hyperdrive - load drive', (t) => {
-  t.timeoutAfter(TEST_TIMEOUT)
-
-  const drive = Hyperdrive(DATPROJECT_KEY)
-
-  drive.readFile('/dat.json', 'utf8', (err, data) => {
-    t.notOk(err, 'loaded file without error')
-
-    t.end()
+async function run () {
+  const { Hyperdrive, Hypercore, resolveName, close } = await SDK({
+    storage: getNewStorage()
   })
-})
-
-test('Hyperdrive - create drive', (t) => {
-  t.timeoutAfter(TEST_TIMEOUT)
-
-  const drive = Hyperdrive()
-
-  drive.writeFile('/example.txt', 'Hello World!', (err) => {
-    t.notOk(err, 'Able to write to hyperdrive')
-
-    t.end()
+  const { Hyperdrive: Hyperdrive2, Hypercore: Hypercore2, close: close2 } = await SDK({
+    storage: getNewStorage()
   })
-})
 
-test('Hyperdrive - get existing drive', (t) => {
-  const drive = Hyperdrive()
+  const TEST_TIMEOUT = 60 * 1000
 
-  drive.ready(() => {
-    const existing = Hyperdrive(drive.key)
+  const EXAMPLE_DNS_URL = 'dat://dat.foundation'
+  const EXAMPLE_DNS_RESOLUTION = '60c525b5589a5099aa3610a8ee550dcd454c3e118f7ac93b7d41b6b850272330'
 
-    t.equal(existing, drive, 'Got existing drive by reference')
-
-    t.end()
+  test.onFinish(() => {
+    close(() => {
+      close2()
+    })
   })
-})
 
-test('Hyperdrive - new drive created after close', (t) => {
-  const drive = Hyperdrive()
+  test('Hyperdrive - create drive', (t) => {
+    t.timeoutAfter(TEST_TIMEOUT)
 
-  drive.ready(() => {
-    drive.once('close', () => {
+    const drive = Hyperdrive('Example drive 1')
+
+    drive.writeFile('/example.txt', 'Hello World!', (err) => {
+      t.notOk(err, 'Able to write to hyperdrive')
+
+      t.end()
+    })
+  })
+
+  test('Hyperdrive - get existing drive', (t) => {
+    const drive = Hyperdrive('Example drive 2')
+
+    drive.ready(() => {
       const existing = Hyperdrive(drive.key)
 
-      t.notEqual(existing, drive, 'Got new drive by reference')
-
-      t.end()
-    })
-    drive.close()
-  })
-})
-
-test('resolveName - resolve and load archive', (t) => {
-  t.timeoutAfter(TEST_TIMEOUT)
-
-  resolveName('dat://dat.foundation', (err, resolved) => {
-    t.notOk(err, 'Resolved successfully')
-
-    const drive = Hyperdrive(resolved)
-
-    drive.readFile('/dat.json', 'utf8', (err2) => {
-      t.notOk(err2, 'loaded file without error')
+      t.equal(existing, drive, 'Got existing drive by reference')
 
       t.end()
     })
   })
-})
 
-test('Hypercore - create', (t) => {
-  t.timeoutAfter(TEST_TIMEOUT)
+  test('Hyperdrive - load drive over network', (t) => {
+    t.timeoutAfter(TEST_TIMEOUT)
 
-  const core = Hypercore()
+    const EXAMPLE_DATA = 'Hello World!'
 
-  core.append('Hello World', (err) => {
-    t.notOk(err, 'able to write to hypercore')
+    const drive1 = Hyperdrive2('Example drive 3')
 
-    t.end()
+    drive1.writeFile('/index.html', EXAMPLE_DATA, (err) => {
+      t.notOk(err, 'wrote to initial archive')
+      const drive = Hyperdrive(drive1.key)
+      t.deepEqual(drive1.key, drive.key, 'loaded correct archive')
+      drive.once('peer-add', () => {
+        drive.readFile('/index.html', 'utf8', (err, data) => {
+          t.notOk(err, 'loaded file without error')
+          t.equal(data, EXAMPLE_DATA)
+
+          t.end()
+        })
+      })
+    })
   })
-})
 
-test('Hypercore - load', (t) => {
-  t.timeoutAfter(TEST_TIMEOUT)
+  test('Hyperdrive - replicate in-memory drive', (t) => {
+    t.timeoutAfter(TEST_TIMEOUT)
 
-  const key = '60c525b5589a5099aa3610a8ee550dcd454c3e118f7ac93b7d41b6b850272330'
+    const EXAMPLE_DATA = 'Hello World!'
 
-  const core = Hypercore(key)
+    const drive1 = Hyperdrive2('Example drive 4', { persist: false })
 
-  core.ready(() => {
-    t.equal(core.key.toString('hex'), key, 'loaded key')
+    drive1.writeFile('/index.html', EXAMPLE_DATA, (err) => {
+      t.notOk(err, 'wrote to initial archive')
+      const drive = Hyperdrive(drive1.key, { persist: false })
+      t.deepEqual(drive1.key, drive.key, 'loaded correct archive')
+      drive.once('peer-add', () => {
+        drive.readFile('/index.html', 'utf8', (err, data) => {
+          t.notOk(err, 'loaded file without error')
+          t.equal(data, EXAMPLE_DATA)
 
-    t.end()
+          t.end()
+        })
+      })
+    })
   })
-})
+
+  test('Hyperdrive - new drive created after close', (t) => {
+    const drive = Hyperdrive('Example drive 5')
+
+    drive.ready(() => {
+      drive.once('close', () => {
+        const existing = Hyperdrive(drive.key)
+
+        t.notEqual(existing, drive, 'Got new drive by reference')
+
+        t.end()
+      })
+      drive.close()
+    })
+  })
+
+  test('resolveName - resolve and load archive', (t) => {
+    t.timeoutAfter(TEST_TIMEOUT)
+
+    resolveName(EXAMPLE_DNS_URL, (err, resolved) => {
+      t.notOk(err, 'Resolved successfully')
+
+      t.equal(resolved, EXAMPLE_DNS_RESOLUTION)
+      t.end()
+    })
+  })
+
+  test('Hypercore - create', (t) => {
+    t.timeoutAfter(TEST_TIMEOUT)
+
+    const core = Hypercore('Example hypercore 1')
+
+    core.append('Hello World', (err) => {
+      t.notOk(err, 'able to write to hypercore')
+
+      t.end()
+    })
+  })
+
+  test('Hypercore - load from network', (t) => {
+    t.timeoutAfter(TEST_TIMEOUT)
+    t.plan(3)
+
+    const core1 = Hypercore('Example hypercore 2')
+
+    core1.append('Hello World', () => {
+      const core2 = Hypercore2(core1.key)
+
+      t.deepEqual(core2.key, core1.key, 'loaded key correctly')
+
+      core2.once('peer-add', () => {
+        core2.get(0, (err, data) => {
+          t.notOk(err, 'no error reading from core')
+          t.ok(data, 'got data from replicated core')
+
+          t.end()
+        })
+      })
+    })
+  })
+
+  test('Hypercore - replicate in-memory cores', (t) => {
+    t.timeoutAfter(TEST_TIMEOUT)
+    t.plan(3)
+
+    const core1 = Hypercore('Example hypercore 3', { persist: false })
+
+    core1.append('Hello World', () => {
+      const core2 = Hypercore2(core1.key, { persist: false })
+
+      t.deepEqual(core2.key, core1.key, 'loaded key correctly')
+
+      core2.once('peer-add', () => {
+        core2.get(0, (err, data) => {
+          t.notOk(err, 'no error reading from core')
+          t.ok(data, 'got data from replicated core')
+
+          t.end()
+        })
+      })
+    })
+  })
+}
