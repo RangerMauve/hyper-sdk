@@ -23,7 +23,7 @@ The Dat SDK combines the lower level pieces of the Dat ecosystem into high level
 [Node.js](https://nodejs.org/) / [Browserify](http://browserify.org/) workflows:
 
 ```shell
-npm install --save dat-sdk@next
+npm install --save dat-sdk
 ```
 
 ```js
