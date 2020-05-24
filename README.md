@@ -166,7 +166,7 @@ const myCore = Hypercore('my hypercore name', {
 // Add some data to it
 await myCore.append(JSON.stringify({
   name: 'Alice'
-})
+}))
 
 // Use extension messages for sending extra data over the p2p connection
 const discoveryCoreKey = 'dat://bee80ff3a4ee5e727dc44197cb9d25bf8f19d50b0f3ad2984cfe5b7d14e75de7'
