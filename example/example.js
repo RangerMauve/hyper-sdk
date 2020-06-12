@@ -1,5 +1,5 @@
 const SDK = require('../')
-//const SDK = require('dat-sdk')
+// const SDK = require('dat-sdk')
 
 run()
 
@@ -112,7 +112,7 @@ async function run () {
 
   trie.put('key', 'value', () => {
     trie.get('key', (err, node) => {
-    	console.log(err)
+      console.log(err)
       console.log('Got key: ', node.key)
       console.log('Loaded value from trie: ', node.value)
 

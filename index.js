@@ -18,7 +18,8 @@ const makeHypercorePromise = require('@geut/hypercore-promise')
 const makeHyperdrivePromise = require('@geut/hyperdrive-promise')
 
 const DEFAULT_SWARM_OPTS = {
-  extensions: []
+  extensions: [],
+  preferredPort: 42666
 }
 const DEFAULT_DRIVE_OPTS = {
   sparse: true,

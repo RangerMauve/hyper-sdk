@@ -73,6 +73,7 @@ async function run () {
       const drive = Hyperdrive(drive1.key)
       t.deepEqual(drive1.key, drive.key, 'loaded correct archive')
       drive.once('peer-add', () => {
+        t.pass('Got peer for drive')
         drive.readFile('/index.html', 'utf8', (err, data) => {
           t.notOk(err, 'loaded file without error')
           t.equal(data, EXAMPLE_DATA)

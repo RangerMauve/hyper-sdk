@@ -230,10 +230,11 @@ Creates an instance of the Dat SDK based on the options.
 - `opts.corestoreOpts`: Options to pass into Corestore when it's initialized.
 - `opts.swarmOpts`: This lets you configure [hyperswarm](https://github.com/hyperswarm/hyperswarm) and [hyperswarm-web](https://github.com/RangerMauve/hyperswarm-web)
   - `maxPeers`: The maximum number of connections to keep for this swarm.
-  - `ephemeral **NODE**`: Set to `false` if this is going to be in a long running process on a server. 
-  - `bootstap **NODE**`: An array of addresses to use for the DHT bootstraping
-  - `webrtcBootstrap: ['https://geut-webrtc-signal.herokuapp.com/'] **BROWSER**`: The WebRTC bootstrap server list used by [discovery-swarm-webrtc](https://github.com/geut/discovery-swarm-webrtc)
-  - `wsProxy: 'wss://hyperswarm.mauve.moe' **BROWSER**`: The Websocket proxy used for [hyperswarm-proxy-ws](https://github.com/RangerMauve/hyperswarm-proxy-ws)
+  - `ephemeral **Node**`: Set to `false` if this is going to be in a long running process on a server. 
+  - `bootstap **Node**`: An array of addresses to use for the DHT bootstraping. Defaults to `['bootstrap1.hyperdht.org:49737', 'bootstrap2.hyperdht.org:49737', 'bootstrap3.hyperdht.org:49737']`
+  - `preferredPort: 42666 **Node**`: The port hyperswarm should try to bind on. You should allow it through your firewall on TCP/UDP for best results. 
+  - `webrtcBootstrap **Browser**: ['https://geut-webrtc-signal.herokuapp.com/'] **BROWSER**`: The WebRTC bootstrap server list used by [discovery-swarm-webrtc](https://github.com/geut/discovery-swarm-webrtc)
+  - `wsProxy **Browser**: 'wss://hyperswarm.mauve.moe' **BROWSER**`: The Websocket proxy used for [hyperswarm-proxy-ws](https://github.com/RangerMauve/hyperswarm-proxy-ws)
 - `opts.driveOpts`: This lets you configure the behavior of [Hyperdrive](https://github.com/mafintosh/hyperdrive) instances
   - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
   - `persist: true`: Whether the data should be persisted to storage. Set to false to create in-memory archives
