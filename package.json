@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "node test",
-    "build": "cross-env BABEL_DISABLE_CACHE=1 browserify index.js > dat-sdk-bundle.js",
+    "build": "cross-env BABEL_DISABLE_CACHE=1 browserify -t [ babelify --global ] index.js > dat-sdk-bundle.js",
     "build-test": "cross-env BABEL_DISABLE_CACHE=1 browserify -t [ babelify --global ] -d test.js > test-bundle.js",
     "update-deps": "npm install --save hyperswarm@latest corestore-swarm-networking@latest hyperdrive@latest corestore@latest hypercore@latest hypercore-protocol@latest"
   },
