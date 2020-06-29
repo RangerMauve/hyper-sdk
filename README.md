@@ -526,6 +526,7 @@ Close a file. Similar to fs.close.
 
 Closes all open resources used by the archive.
 The archive should no longer be used after calling this.
+If you load this hyperdrive's key more than once at once, `close()` will be a noop until all handles invoke it.
 
 #### `await archive.destroyStorage()`
 
@@ -713,6 +714,7 @@ Create a writable stream.
 #### `await feed.close()`
 
 Fully close this feed.
+If you loaded this feed more than once, `close` will be a noop until all handles have invoked it.
 
 Calls the callback with `(err)` when all storage has been closed.
 

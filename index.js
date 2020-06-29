@@ -36,6 +36,9 @@ const DEFAULT_CORESTORE_OPTS = {
 
 const DEFAULT_APPLICATION_NAME = 'dat-sdk'
 
+const CLOSE_FN = Symbol('close')
+const HANDLE_COUNT = Symbol('closeCount')
+
 module.exports = SDK
 
 // TODO: Set up Promise API based on Beaker https://github.com/beakerbrowser/beaker/blob/blue-hyperdrive10/app/bg/web-apis/fg/hyperdrive.js
@@ -128,7 +131,11 @@ async function SDK ({
       // Probably isn't a `dat://` URL, so it must be a name
     }
 
-    if (drives.has(nameOrKey)) return drives.get(nameOrKey)
+    if (drives.has(nameOrKey)) {
+      const existing = drives.get(nameOrKey)
+      existing[HANDLE_COUNT]++
+      return existing
+    }
 
     opts.namespace = nameOrKey
 
@@ -145,6 +152,16 @@ async function SDK ({
 
     const drive = makeHyperdrive(driveStorage, key, opts)
     const wrappedDrive = makeHyperdrivePromise(drive)
+
+    drive[HANDLE_COUNT] = 0
+
+    drive[CLOSE_FN] = drive.close
+    drive.close = function (fd, cb) {
+      if (fd && cb) return this[CLOSE_FN](fd, cb)
+      const hasHandles = wrappedDrive[HANDLE_COUNT]--
+      if (hasHandles > 0) setTimeout(fd, 0)
+      else this[CLOSE_FN](fd, cb)
+    }
 
     if (driveStorage !== corestore) {
       drive.ready(() => {
@@ -178,30 +195,15 @@ async function SDK ({
     })
 
     drive.once('close', () => {
-      const { discoveryKey = drive.discoveryKey } = opts
-      swarm.leave(discoveryKey)
-
       const key = drive.key
       const stringKey = key.toString('hex')
 
       drives.delete(stringKey)
       drives.delete(nameOrKey)
-    })
 
-    if (!drive.destroyStorage) {
-      drive.destroyStorage = function (cb) {
-        const metadata = this.db.feed
-        this._getContent(metadata, (err, contentState) => {
-          if (err) return cb(err)
-          const content = contentState.feed
-          metadata.destroyStorage(() => {
-            content.destroyStorage(() => {
-              this.close(cb)
-            })
-          })
-        })
-      }
-    }
+      const { discoveryKey = drive.discoveryKey } = opts
+      swarm.leave(discoveryKey)
+    })
 
     return wrappedDrive
   }
@@ -221,8 +223,11 @@ async function SDK ({
       // Probably isn't a `dat://` URL, so it must be a name
     }
 
-    if (cores.has(nameOrKey)) return cores.get(nameOrKey)
-
+    if (cores.has(nameOrKey)) {
+      const existing = cores.get(nameOrKey)
+      existing[HANDLE_COUNT]++
+      return existing
+    }
     const { persist } = opts
     let coreStorage = null
 
@@ -257,14 +262,24 @@ async function SDK ({
     }
 
     // Wrap with promises
-    core = makeHypercorePromise(core)
+    const wrappedCore = makeHypercorePromise(core)
 
-    cores.set(nameOrKey, core)
+    core[HANDLE_COUNT] = 0
+
+    core.close = function (cb) {
+      const hasHandles = wrappedCore[HANDLE_COUNT]--
+      if(hasHandles <=0) {
+        core._close(cb || function noop() {})
+      } else if (cb) setTimeout(cb, 0)
+    }
+
+    cores.set(nameOrKey, wrappedCore)
+
     if (!key) {
       core.ready(() => {
         const key = core.key
         const stringKey = key.toString('hex')
-        cores.set(stringKey, core)
+        cores.set(stringKey, wrappedCore)
       })
     }
 
@@ -291,7 +306,7 @@ async function SDK ({
       cores.delete(nameOrKey)
     })
 
-    return core
+    return wrappedCore
   }
 
   function trackMemoryCore (core) {

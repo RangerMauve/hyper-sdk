@@ -110,14 +110,13 @@ async function run () {
     const drive = Hyperdrive('Example drive 5')
 
     drive.ready(() => {
-      drive.once('close', () => {
+      drive.close(() => {
         const existing = Hyperdrive(drive.key)
 
-        t.notEqual(existing, drive, 'Got new drive by reference')
+        t.notOk(existing === drive, 'Got new drive by reference')
 
         t.end()
       })
-      drive.close()
     })
   })
 
@@ -181,8 +180,31 @@ async function run () {
         core2.get(0, (err, data) => {
           t.notOk(err, 'no error reading from core')
           t.ok(data, 'got data from replicated core')
-
           t.end()
+        })
+      })
+    })
+  })
+
+  test('Hypercore - only close when all handles are closed', (t) => {
+    t.timeoutAfter(TEST_TIMEOUT)
+    t.plan(5)
+
+    const core1 = Hypercore('Example hypercore 4')
+    const core2 = Hypercore('Example hypercore 4')
+
+    core1.on('close', () => t.pass('close event emitted once'))
+
+    t.ok(core1 === core2, 'Second handle is same instance')
+
+    core1.append('Hello World', () => {
+      core1.close(() => {
+        t.pass('First core closed')
+        core1.get(0, (err) => {
+          t.notOk(err, 'Still able to read after close')
+          core2.close(() => {
+            t.pass('Second core closed')
+          })
         })
       })
     })
