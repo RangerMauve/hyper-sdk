@@ -7,7 +7,7 @@
     "test": "node test",
     "build": "cross-env BABEL_DISABLE_CACHE=1 browserify -t [ babelify --global ] --standalone datSDK index.js > dat-sdk-bundle.js",
     "build-test": "cross-env BABEL_DISABLE_CACHE=1 browserify -t [ babelify --global ] -d test.js > test-bundle.js",
-    "update-deps": "npm install --save hyperswarm@latest corestore-swarm-networking@latest hyperdrive@latest corestore@latest hypercore@latest hypercore-protocol@latest"
+    "update-deps": "npm install --save hyperswarm@latest @corestore/networker@latest hyperdrive@latest corestore@latest hypercore@latest hypercore-protocol@latest hypercore-crypto@latest"
   },
   "repository": {
     "type": "git",
@@ -49,18 +49,18 @@
     "babel.config.json"
   ],
   "dependencies": {
+    "@corestore/networker": "0.0.3",
     "@geut/hypercore-promise": "^2.0.0",
     "@geut/hyperdrive-promise": "^3.0.1",
     "@geut/sodium-javascript-plus": "0.0.6",
-    "corestore": "^5.5.0",
-    "corestore-swarm-networking": "^5.5.1",
+    "corestore": "^5.6.0",
     "dat-dns": "^4.0.0",
     "dat-encoding": "^5.0.1",
-    "hypercore": "^9.4.1",
-    "hypercore-crypto": "^2.1.0",
-    "hypercore-protocol": "^8.0.0",
+    "hypercore": "^9.5.0",
+    "hypercore-crypto": "^2.1.1",
+    "hypercore-protocol": "^8.0.1",
     "hyperdrive": "^10.13.0",
-    "hyperswarm": "^2.14.0",
+    "hyperswarm": "^2.14.1",
     "hyperswarm-web": "^1.0.2",
     "random-access-application": "^1.0.0",
     "random-access-memory": "^3.1.1"

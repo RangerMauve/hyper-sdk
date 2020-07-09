@@ -3,7 +3,7 @@ const path = require('path')
 // This is a dirty hack for browserify to work. 😅
 if (!path.posix) path.posix = path
 
-const SwarmNetworker = require('corestore-swarm-networking')
+const SwarmNetworker = require('@corestore/networker')
 const RAA = require('random-access-application')
 const DatEncoding = require('dat-encoding')
 const crypto = require('hypercore-crypto')
@@ -85,6 +85,7 @@ async function SDK ({
     resolveName,
     getIdentity,
     deriveSecret,
+    registerExtension,
     close,
     _storage: storage,
     _corestore: corestore,
@@ -114,6 +115,10 @@ async function SDK ({
 
   function resolveName (url, cb) {
     return dns.resolveName(url, cb)
+  }
+
+  function registerExtension (name, handlers) {
+    return swarm.registerExtension(name, handlers)
   }
 
   function Hyperdrive (nameOrKey, opts) {
@@ -160,7 +165,7 @@ async function SDK ({
       if (fd && cb) return this[CLOSE_FN](fd, cb)
       const hasHandles = wrappedDrive[HANDLE_COUNT]--
       if (hasHandles > 0) setTimeout(fd, 0)
-      else this[CLOSE_FN](fd, cb)
+      else setTimeout(() => this[CLOSE_FN](fd, cb), 0)
     }
 
     if (driveStorage !== corestore) {
@@ -191,7 +196,7 @@ async function SDK ({
       } = opts
       // Don't advertise if we're not looking up or announcing
       if (!lookup && !announce) return
-      swarm.join(discoveryKey, { lookup, announce })
+      swarm.configure(discoveryKey, { lookup, announce })
     })
 
     drive.once('close', () => {
@@ -202,7 +207,7 @@ async function SDK ({
       drives.delete(nameOrKey)
 
       const { discoveryKey = drive.discoveryKey } = opts
-      swarm.leave(discoveryKey)
+      swarm.configure(discoveryKey, { announce: false, lookup: false })
     })
 
     return wrappedDrive
@@ -268,8 +273,10 @@ async function SDK ({
 
     core.close = function (cb) {
       const hasHandles = wrappedCore[HANDLE_COUNT]--
-      if(hasHandles <=0) {
-        core._close(cb || function noop() {})
+      if (hasHandles <= 0) {
+        setTimeout(() => {
+          core._close(cb || function noop () {})
+        }, 0)
       } else if (cb) setTimeout(cb, 0)
     }
 
@@ -292,7 +299,7 @@ async function SDK ({
 
       // Don't advertise if we're not looking up or announcing
       if (!lookup && !announce) return
-      swarm.join(discoveryKey, { announce, lookup })
+      swarm.configure(discoveryKey, { announce, lookup })
     })
 
     core.once('close', () => {
@@ -300,7 +307,7 @@ async function SDK ({
       const key = core.key
       const stringKey = key.toString('hex')
 
-      swarm.leave(discoveryKey)
+      swarm.configure(discoveryKey, { announce: false, lookup: false })
 
       cores.delete(stringKey)
       cores.delete(nameOrKey)

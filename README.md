@@ -220,7 +220,7 @@ trie.put('key', 'value', () => {
 
 The API supports both promises and callbacks. Everywhere where you see `await`, you can instead pass a node-style callback.
 
-### `const {Hypercore, Hyperdrive, resolveName, getIdentity, deriveSecret, close} = await SDK(opts?)`
+### `const {Hypercore, Hyperdrive, resolveName, getIdentity, deriveSecret, registerExtension, close} = await SDK(opts?)`
 
 Creates an instance of the Dat SDK based on the options.
 
@@ -270,6 +270,17 @@ You can use this to identify peers in the network using `peer.remotePublicKey`
 Derives a secret key based on the SDK's master key.
 `namespace` can be used to namespace different applications, and `name` is the name of the key you want.
 This can be used as a seed for generating secure private keys without needing to store an extra key on disk.
+
+### `const extension = registerExtension(name, handlers)`
+
+Listens on extension messages of type `name` on the feeds replication channels.
+
+- `handlers.encoding`: The encoding to use for messages. `json`, `binary`, 'utf8'
+- `handlers.onmessage(message, peer)`: Function to invoke when a peer sends you a message for this extension type.
+- `handlers.onerror(err, peer)`: Function to invoke when a peer has sent you a mis-coded message on this extension.
+
+You can respond to messages with `extension.send(message, peer)`.
+You can also broadcast out messages to all peers with `extension.broadcast(message)`
 
 ### `const archive = Hyperdrive(keyOrName, opts)`
 
@@ -747,6 +758,7 @@ Listens on extension messages of type `name` on the feeds replication channels.
 - `handlers.onerror(err, peer)`: Function to invoke when a peer has sent you a mis-coded message on this extension.
 
 You can respond to messages with `extension.send(message, peer)`.
+You can also broadcast out messages to all peers with `extension.broadcast(message)`
 
 #### `feed.writable`
 
