@@ -97,7 +97,7 @@ async function SDK ({
     return corestore._deriveSecret(namespace, name)
   }
 
-  async function getIdentity () {
+  function getIdentity () {
     return keyPair
   }
 

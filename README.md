@@ -260,7 +260,7 @@ Resolve a DNS name to a Dat key.
   - `url` is a Dat URL like `dat://dat.foundation`
   - `key` will be the Dat key that you can pass to `hyperdrive`
 
-### `const {publicKey, secretKey} = await getIdentity()`
+### `const {publicKey, secretKey} = getIdentity()`
 
 This gives you the public / private keypair used for the Noise protocol encryption when connecting to peers.
 You can use this to identify peers in the network using `peer.remotePublicKey`
