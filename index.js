@@ -87,6 +87,7 @@ async function SDK ({
     deriveSecret,
     registerExtension,
     close,
+    get keyPair() { return keyPair },
     _storage: storage,
     _corestore: corestore,
     _swarm: swarm,
@@ -98,6 +99,7 @@ async function SDK ({
   }
 
   function getIdentity () {
+    console.warn('getIdentity is being deprecated and will be removed in version 3.x.x, please use sdk.keyPair instead')
     return keyPair
   }
 
