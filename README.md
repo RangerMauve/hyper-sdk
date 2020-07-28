@@ -224,8 +224,9 @@ The API supports both promises and callbacks. Everywhere where you see `await`, 
 
 Creates an instance of the Dat SDK based on the options.
 
-- `opts.storage`: An optional [random-access-storage](https://github.com/random-access-storage/random-access-storage) instance for storing data.
 - `opts.applicationName`: An optional name for the application using the SDK. This will automatically silo your data from other applications using the SDK and will store it in the appropriate place using [random-access-application](https://github.com/RangerMauve/random-access-application/)
+- `opts.persist: true`: An optional arg for whether data should be persisted. Set this to `false` if you want stuff stored in memory. Ignored if you pass in a custom storage or corestore.
+- `opts.storage`: An optional [random-access-storage](https://github.com/random-access-storage/random-access-storage) instance for storing data.
 - `opts.corestore`: An optional [Corestore](https://github.com/andrewosh/corestore) instance for using as hypercore storage.
 - `opts.corestoreOpts`: Options to pass into Corestore when it's initialized.
 - `opts.swarmOpts`: This lets you configure [hyperswarm](https://github.com/hyperswarm/hyperswarm) and [hyperswarm-web](https://github.com/RangerMauve/hyperswarm-web)

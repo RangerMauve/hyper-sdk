@@ -47,6 +47,7 @@ async function SDK ({
   storage,
   corestore,
   applicationName = DEFAULT_APPLICATION_NAME,
+  persist = true,
   swarmOpts,
   driveOpts,
   coreOpts,
@@ -56,7 +57,14 @@ async function SDK ({
 ) {
   // Derive storage if it isn't provided
   // Don't derive if corestore was provided
-  if (!storage && !corestore) storage = RAA(applicationName)
+  if (!storage && !corestore) {
+    if (persist !== false) {
+      storage = RAA(applicationName)
+    } else {
+      // Nothing should be persisted. 🤷
+      storage = RAM
+    }
+  }
 
   if (!corestore) {
     corestore = new Corestore(
@@ -87,7 +95,7 @@ async function SDK ({
     deriveSecret,
     registerExtension,
     close,
-    get keyPair() { return keyPair },
+    get keyPair () { return keyPair },
     _storage: storage,
     _corestore: corestore,
     _swarm: swarm,
