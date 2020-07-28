@@ -103,7 +103,7 @@ async function SDK ({
   }
 
   async function deriveSecret (namespace, name) {
-    return corestore._deriveSecret(namespace, name)
+    return corestore.inner._deriveSecret(namespace, name)
   }
 
   function getIdentity () {
@@ -328,14 +328,21 @@ async function SDK ({
 
   function trackMemoryCore (core) {
     core.ready(() => {
-      corestore._injectIntoReplicationStreams(core)
-      corestore.emit('feed', core)
+      cacheCore(core)
+      corestore.inner._injectIntoReplicationStreams(core)
+      corestore.inner.emit('feed', core)
     })
 
     core.once('close', () => {
-      corestore._uncacheCore(core, core.discoveryKey)
+      uncacheCore(core)
     })
+  }
 
-    corestore._cacheCore(core, core.discoveryKey, { external: true })
+  function cacheCore(core) {
+    corestore.inner.cache.set(core.discoveryKey.toString('hex'), core)
+  }
+
+  function uncacheCore(core) {
+    corestore.inner.cache.delete(core.discoveryKey.toString('hex'))
   }
 }

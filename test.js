@@ -193,7 +193,7 @@ async function run () {
     const core1 = Hypercore('Example hypercore 4')
     const core2 = Hypercore('Example hypercore 4')
 
-    core1.on('close', () => t.pass('close event emitted once'))
+    core1.once('close', () => t.pass('close event emitted once'))
 
     t.ok(core1 === core2, 'Second handle is same instance')
 
