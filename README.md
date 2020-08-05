@@ -361,6 +361,14 @@ You can use this with `.checkout(version)` to download a specific version of the
 archive.checkout(version).download()
 ```
 
+#### `await archive.clear(path)`
+
+Clear the storage of all files in the path.
+This is the opposite of the `download` API.
+Note that this doesn't delete the files from history, just clears the data locally.
+
+You can use this with `.checkout(version)` to clear a specific version of the archive.
+
 #### `var stream = archive.history([options])`
 
 Get a stream of all changes and their versions from this archive.
