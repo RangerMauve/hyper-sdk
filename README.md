@@ -18,6 +18,8 @@ The Dat SDK combines the lower level pieces of the Dat ecosystem into high level
   - ✔ Electron
   - React-Native (with [nodejs-mobile-react-native?](https://github.com/janeasystems/nodejs-mobile-react-native))
 
+## Watch the workshop [Video](https://www.youtube.com/watch?v=HyHk4aImd_I&list=PL7sG5SCUNyeYx8wnfMOUpsh7rM_g0w_cu&index=20). Try it yourself: [workshop](https://github.com/RangerMauve/dat-workshop)
+
 ## Installing Node
 
 [Node.js](https://nodejs.org/) / [Browserify](http://browserify.org/) workflows:
