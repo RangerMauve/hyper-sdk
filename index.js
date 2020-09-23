@@ -11,11 +11,13 @@ const RAM = require('random-access-memory')
 const HypercoreProtocol = require('hypercore-protocol')
 
 const datDNS = require('dat-dns')
-const makeHyperdrive = require('hyperdrive')
+const hyperdrive = require('hyperdrive')
 const Corestore = require('corestore')
-const makeHypercore = require('hypercore')
+const hypercore = require('hypercore')
 const makeHypercorePromise = require('@geut/hypercore-promise')
 const makeHyperdrivePromise = require('@geut/hyperdrive-promise')
+
+const HyperspaceClient = require('@hyperspace/client')
 
 const DEFAULT_SWARM_OPTS = {
   extensions: [],
@@ -42,19 +44,16 @@ const HANDLE_COUNT = Symbol('closeCount')
 module.exports = SDK
 
 // TODO: Set up Promise API based on Beaker https://github.com/beakerbrowser/beaker/blob/blue-hyperdrive10/app/bg/web-apis/fg/hyperdrive.js
-
-async function SDK ({
-  storage,
-  corestore,
-  applicationName = DEFAULT_APPLICATION_NAME,
-  persist = true,
-  swarmOpts,
-  driveOpts,
-  coreOpts,
-  dnsOpts,
-  corestoreOpts
-} = {}
-) {
+//
+async function nativeBackend (opts) {
+  let {
+    storage,
+    corestore,
+    applicationName,
+    persist,
+    swarmOpts,
+    corestoreOpts
+  } = opts
   // Derive storage if it isn't provided
   // Don't derive if corestore was provided
   if (!storage && !corestore) {
@@ -73,10 +72,7 @@ async function SDK ({
     )
   }
 
-  // Track list of hyperdrives
-  const drives = new Map()
-  const cores = new Map()
-
+  // The corestore needs to be opened before creating the swarm.
   await corestore.ready()
 
   // I think this is used to create a persisted identity?
@@ -85,7 +81,212 @@ async function SDK ({
   const keyPair = HypercoreProtocol.keyPair(noiseSeed)
 
   const swarm = new SwarmNetworker(corestore, Object.assign({ keyPair }, DEFAULT_SWARM_OPTS, swarmOpts))
+
+  return {
+    storage,
+    corestore,
+    swarm,
+    deriveSecret,
+    keyPair,
+    makeHyperdrive,
+    makeHypercore,
+    close
+  }
+
+  async function deriveSecret (namespace, name) {
+    return corestore.inner._deriveSecret(namespace, name)
+  }
+
+  function close (cb) {
+    swarm.close().then(cb, cb)
+  }
+
+  function makeHyperdrive (key, opts) {
+    const { persist } = opts
+
+    let driveStorage = corestore
+    if (!persist) {
+      driveStorage = RAM
+    } else if (opts.storage) {
+      driveStorage = opts.storage(key)
+    } else {
+      driveStorage = corestore
+    }
+
+    const drive = hyperdrive(driveStorage, key, opts)
+
+    if (driveStorage !== corestore) {
+      drive.ready(() => {
+        for (const core of drive.corestore.store.list().values()) {
+          trackMemoryCore(core)
+        }
+        drive.corestore.store.on('feed', (core) => {
+          trackMemoryCore(core)
+        })
+      })
+    }
+
+    return drive
+  }
+
+  function makeHypercore (name, key, opts) {
+    const { persist } = opts
+    let coreStorage
+    if (!persist) {
+      coreStorage = RAM
+    } else if (opts.storage) {
+      coreStorage = opts.storage(key)
+    }
+
+    let core = null
+
+    // If sotrage was passed in the opts, use it. Else use the corestore
+    if (coreStorage) {
+      // We only want to generate keys if we have a custom storage
+      // Else the corestore does fancy key storage for us
+      if (!key) {
+        const { publicKey, secretKey } = crypto.keyPair()
+        key = publicKey
+        opts.secretKey = secretKey
+      }
+      core = hypercore(coreStorage, key, opts)
+
+      trackMemoryCore(core)
+    } else {
+      if (key) {
+        // If a dat key was provided, get it from the corestore
+        core = corestore.get({ ...opts, key })
+      } else {
+        // If no dat key was provided, but a name was given, use it as a namespace
+        core = corestore.namespace(name).default(opts)
+      }
+    }
+    return core
+  }
+
+  function trackMemoryCore (core) {
+    core.ready(() => {
+      cacheCore(core)
+      corestore.inner._injectIntoReplicationStreams(core)
+      corestore.inner.emit('feed', core)
+    })
+
+    core.once('close', () => {
+      uncacheCore(core)
+    })
+  }
+
+  function cacheCore (core) {
+    corestore.inner.cache.set(core.discoveryKey.toString('hex'), core)
+  }
+
+  function uncacheCore (core) {
+    corestore.inner.cache.delete(core.discoveryKey.toString('hex'))
+  }
+}
+
+async function hyperspaceBackend (opts) {
+  let {
+    corestore,
+    hyperspaceClient,
+    // persist,
+    clientOpts
+  } = opts
+
+  if (!corestore) {
+    if (!hyperspaceClient) {
+      hyperspaceClient = new HyperspaceClient(clientOpts)
+    }
+    await hyperspaceClient.ready()
+    corestore = hyperspaceClient.corestore()
+  }
+
+  await hyperspaceClient.network.ready()
+  const swarm = hyperspaceClient.network
+  const keyPair = hyperspaceClient.network.keyPair
+
+  return {
+    corestore,
+    swarm,
+    keyPair,
+    deriveSecret,
+    close,
+    makeHyperdrive,
+    makeHypercore
+  }
+
+  async function deriveSecret (namespace, name) {
+    throw new Error('Deriving secrets is not supported')
+  }
+
+  function close (cb) {
+    cb()
+  }
+
+  function makeHyperdrive (key, opts) {
+    // TODO: Throw error if opts.persist === false?
+    return hyperdrive(corestore, key, opts)
+  }
+
+  function makeHypercore (name, key, opts) {
+    // TODO: Throw error if opts.persist === false?
+    let core
+    if (key) {
+      // If a dat key was provided, get it from the corestore
+      core = corestore.get({ ...opts, key })
+    } else {
+      // If no dat key was provided, but a name was given, use it as a namespace
+      core = corestore.namespace(name).default(opts)
+    }
+    return core
+  }
+}
+
+async function getBackend (opts) {
+  let { backend, hyperspaceClient } = opts
+  if (!backend && hyperspaceClient) backend = 'hyperspace'
+  if (!backend) backend = 'native'
+
+  let handlers
+  if (backend === 'native') {
+    handlers = await nativeBackend(opts)
+  } else if (backend === 'hyperspace') {
+    handlers = await hyperspaceBackend(opts)
+  } else if (typeof backend === 'function') {
+    handlers = await backend(opts)
+  } else {
+    throw new Error('Invalid backend')
+  }
+  return handlers
+}
+
+async function SDK (opts = {}) {
+  if (!opts.applicationName) opts.applicationName = DEFAULT_APPLICATION_NAME
+  if (opts.persist === undefined) opts.persist = true
+
+  const {
+    driveOpts,
+    coreOpts,
+    dnsOpts
+  } = opts
+
   const dns = datDNS(Object.assign({}, DEFAULT_DNS_OPTS, dnsOpts))
+
+  const handlers = await getBackend(opts)
+  const {
+    storage,
+    corestore,
+    swarm,
+    deriveSecret,
+    keyPair,
+    makeHyperdrive,
+    makeHypercore
+  } = handlers
+
+  await corestore.ready()
+
+  const drives = new Map()
+  const cores = new Map()
 
   return {
     Hyperdrive,
@@ -102,10 +303,6 @@ async function SDK ({
     _dns: dns
   }
 
-  async function deriveSecret (namespace, name) {
-    return corestore.inner._deriveSecret(namespace, name)
-  }
-
   function getIdentity () {
     console.warn('getIdentity is being deprecated and will be removed in version 3.x.x, please use sdk.keyPair instead')
     return keyPair
@@ -120,7 +317,7 @@ async function SDK ({
       core.close()
     }
 
-    swarm.close().then(cb, cb)
+    handlers.close(cb)
   }
 
   function resolveName (url, cb) {
@@ -154,18 +351,7 @@ async function SDK ({
 
     opts.namespace = nameOrKey
 
-    const { persist } = opts
-
-    let driveStorage = corestore
-    if (!persist) {
-      driveStorage = RAM
-    } else if (opts.storage) {
-      driveStorage = opts.storage(key)
-    } else {
-      driveStorage = corestore
-    }
-
-    const drive = makeHyperdrive(driveStorage, key, opts)
+    const drive = makeHyperdrive(key, opts)
     const wrappedDrive = makeHyperdrivePromise(drive)
 
     drive[HANDLE_COUNT] = 0
@@ -176,17 +362,6 @@ async function SDK ({
       const hasHandles = wrappedDrive[HANDLE_COUNT]--
       if (hasHandles > 0) setTimeout(fd, 0)
       else setTimeout(() => this[CLOSE_FN](fd, cb), 0)
-    }
-
-    if (driveStorage !== corestore) {
-      drive.ready(() => {
-        for (const core of drive.corestore.store.list().values()) {
-          trackMemoryCore(core)
-        }
-        drive.corestore.store.on('feed', (core) => {
-          trackMemoryCore(core)
-        })
-      })
     }
 
     drives.set(nameOrKey, wrappedDrive)
@@ -226,7 +401,7 @@ async function SDK ({
   function Hypercore (nameOrKey, opts) {
     if (!nameOrKey) throw new Error('Must give a name or key in the constructor')
 
-    opts = Object.assign({}, DEFAULT_CORE_OPTS, driveOpts, opts)
+    opts = Object.assign({}, DEFAULT_CORE_OPTS, coreOpts, opts)
 
     let key = null
 
@@ -243,49 +418,22 @@ async function SDK ({
       existing[HANDLE_COUNT]++
       return existing
     }
-    const { persist } = opts
-    let coreStorage = null
 
-    if (!persist) {
-      coreStorage = RAM
-    } else if (opts.storage) {
-      coreStorage = opts.storage(key)
-    }
+    const name = key ? null : nameOrKey
 
-    let core = null
-
-    // If sotrage was passed in the opts, use it. Else use the corestore
-    if (coreStorage) {
-      // We only want to generate keys if we have a custom storage
-      // Else the corestore does fancy key storage for us
-      if (!key) {
-        const { publicKey, secretKey } = crypto.keyPair()
-        key = publicKey
-        opts.secretKey = secretKey
-      }
-      core = makeHypercore(coreStorage, key, opts)
-
-      trackMemoryCore(core)
-    } else {
-      if (key) {
-        // If a dat key was provided, get it from the corestore
-        core = corestore.get({ ...opts, key })
-      } else {
-        // If no dat key was provided, but a name was given, use it as a namespace
-        core = corestore.namespace(nameOrKey).default(opts)
-      }
-    }
-
+    const core = makeHypercore(name, key, opts)
     // Wrap with promises
     const wrappedCore = makeHypercorePromise(core)
 
     core[HANDLE_COUNT] = 0
 
     core.close = function (cb) {
+      if (!cb) cb = function noop () {}
       const hasHandles = wrappedCore[HANDLE_COUNT]--
-      if (hasHandles <= 0) {
+      if (hasHandles === 0) {
         setTimeout(() => {
-          core._close(cb || function noop () {})
+          let promise = core._close(cb)
+          if (promise && promise.then) promise.then(cb, cb)
         }, 0)
       } else if (cb) setTimeout(cb, 0)
     }
@@ -324,25 +472,5 @@ async function SDK ({
     })
 
     return wrappedCore
-  }
-
-  function trackMemoryCore (core) {
-    core.ready(() => {
-      cacheCore(core)
-      corestore.inner._injectIntoReplicationStreams(core)
-      corestore.inner.emit('feed', core)
-    })
-
-    core.once('close', () => {
-      uncacheCore(core)
-    })
-  }
-
-  function cacheCore (core) {
-    corestore.inner.cache.set(core.discoveryKey.toString('hex'), core)
-  }
-
-  function uncacheCore (core) {
-    corestore.inner.cache.delete(core.discoveryKey.toString('hex'))
   }
 }

@@ -2,6 +2,8 @@ const SDK = require('./')
 const test = require('tape')
 const RAA = require('random-access-application')
 
+const { createMany } = require('hyperspace/test/helpers/create')
+
 const isBrowser = process.title === 'browser'
 
 function getNewStorage () {
@@ -16,15 +18,35 @@ function getNewStorage () {
   }
 }
 
-run()
+async function createNative () {
+  const sdk1 = await SDK({
+    storage: getNewStorage()
+  })
+  const sdk2 = await SDK({
+    storage: getNewStorage()
+  })
+  return { sdk: [sdk1, sdk2], cleanup }
+  function cleanup () {}
+}
 
-async function run () {
-  const { Hyperdrive, Hypercore, resolveName, close } = await SDK({
-    storage: getNewStorage()
-  })
-  const { Hyperdrive: Hyperdrive2, Hypercore: Hypercore2, close: close2 } = await SDK({
-    storage: getNewStorage()
-  })
+async function createHyperspace () {
+  const { clients, cleanup } = await createMany(2)
+  const sdk1 = await SDK({ hyperspaceClient: clients[0] })
+  const sdk2 = await SDK({ hyperspaceClient: clients[1] })
+  return { sdk: [sdk1, sdk2], cleanup }
+}
+
+runAll()
+
+async function runAll () {
+  await run(createNative)
+  await run(createHyperspace)
+}
+
+async function run (createSDK) {
+  const { sdk, cleanup } = await createSDK()
+  const { Hyperdrive, Hypercore, resolveName, close } = sdk[0]
+  const { Hyperdrive: Hyperdrive2, Hypercore: Hypercore2, close: close2 } = sdk[1]
 
   const TEST_TIMEOUT = 60 * 1000
 
@@ -33,7 +55,9 @@ async function run () {
 
   test.onFinish(() => {
     close(() => {
-      close2()
+      close2(() => {
+        setTimeout(cleanup, 100)
+      })
     })
   })
 
