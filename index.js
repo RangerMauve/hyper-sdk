@@ -3,24 +3,12 @@ const path = require('path')
 // This is a dirty hack for browserify to work. 😅
 if (!path.posix) path.posix = path
 
-const SwarmNetworker = require('@corestore/networker')
-const RAA = require('random-access-application')
 const DatEncoding = require('dat-encoding')
-const RAM = require('random-access-memory')
-const HypercoreProtocol = require('hypercore-protocol')
-
 const datDNS = require('dat-dns')
 const hyperdrive = require('hyperdrive')
-const Corestore = require('corestore')
 const makeHypercorePromise = require('@geut/hypercore-promise')
 const makeHyperdrivePromise = require('@geut/hyperdrive-promise')
 
-const HyperspaceClient = require('@hyperspace/client')
-
-const DEFAULT_SWARM_OPTS = {
-  extensions: [],
-  preferredPort: 42666
-}
 const DEFAULT_DRIVE_OPTS = {
   sparse: true,
   persist: true
@@ -30,10 +18,6 @@ const DEFAULT_CORE_OPTS = {
   persist: true
 }
 const DEFAULT_DNS_OPTS = {}
-const DEFAULT_CORESTORE_OPTS = {
-  sparse: true
-}
-
 const DEFAULT_APPLICATION_NAME = 'dat-sdk'
 
 const CLOSE_FN = Symbol('close')
@@ -43,112 +27,23 @@ module.exports = SDK
 
 // TODO: Set up Promise API based on Beaker https://github.com/beakerbrowser/beaker/blob/blue-hyperdrive10/app/bg/web-apis/fg/hyperdrive.js
 //
-async function nativeBackend (opts) {
-  let {
-    storage,
-    corestore,
-    applicationName,
-    persist,
-    swarmOpts,
-    corestoreOpts
-  } = opts
-  // Derive storage if it isn't provided
-  // Don't derive if corestore was provided
-  if (!storage && !corestore) {
-    if (persist !== false) {
-      storage = RAA(applicationName)
-    } else {
-      // Nothing should be persisted. 🤷
-      storage = RAM
-    }
-  }
-
-  if (!corestore) {
-    corestore = new Corestore(
-      storage,
-      Object.assign({}, DEFAULT_CORESTORE_OPTS, corestoreOpts)
-    )
-  }
-
-  // The corestore needs to be opened before creating the swarm.
-  await corestore.ready()
-
-  // I think this is used to create a persisted identity?
-  // Needs to be created before the swarm so that it can be passed in
-  const noiseSeed = await deriveSecret(applicationName, 'replication-keypair')
-  const keyPair = HypercoreProtocol.keyPair(noiseSeed)
-
-  const swarm = new SwarmNetworker(corestore, Object.assign({ keyPair }, DEFAULT_SWARM_OPTS, swarmOpts))
-
-  return {
-    storage,
-    corestore,
-    swarm,
-    deriveSecret,
-    keyPair,
-    close
-  }
-
-  async function deriveSecret (namespace, name) {
-    return corestore.inner._deriveSecret(namespace, name)
-  }
-
-  function close (cb) {
-    swarm.close().then(cb, cb)
-  }
-}
-
-async function hyperspaceBackend (opts) {
-  let {
-    corestore,
-    hyperspaceClient,
-    clientOpts
-  } = opts
-
-  if (!corestore) {
-    if (!hyperspaceClient) {
-      hyperspaceClient = new HyperspaceClient(clientOpts)
-    }
-    await hyperspaceClient.ready()
-    corestore = hyperspaceClient.corestore()
-  }
-
-  await hyperspaceClient.network.ready()
-  const swarm = hyperspaceClient.network
-  const keyPair = hyperspaceClient.network.keyPair
-
-  return {
-    corestore,
-    swarm,
-    keyPair,
-    deriveSecret,
-    close
-  }
-
-  async function deriveSecret (namespace, name) {
-    throw new Error('Deriving secrets is not supported')
-  }
-
-  function close (cb) {
-    cb()
-  }
-}
-
 async function getBackend (opts) {
   let { backend, hyperspaceClient } = opts
   if (!backend && hyperspaceClient) backend = 'hyperspace'
   if (!backend) backend = 'native'
 
-  let handlers
+  let createBackend
   if (backend === 'native') {
-    handlers = await nativeBackend(opts)
+    createBackend = require('./native')
   } else if (backend === 'hyperspace') {
-    handlers = await hyperspaceBackend(opts)
+    createBackend = require('./hyperspace')
   } else if (typeof backend === 'function') {
-    handlers = await backend(opts)
+    createBackend = backend
   } else {
     throw new Error('Invalid backend')
   }
+
+  const handlers = await createBackend(opts)
   return handlers
 }
 
