@@ -68,11 +68,11 @@ Combine [Browserify](http://browserify.org/) with [Babel](https://babeljs.io/) (
 **Dev** Dependencies (*must* be a DevDependency):
 
 ```
-npm install --save-dev browserify babelify 
+npm install --save-dev browserify babelify util 
 ```
-and the dat-sdk dependency
+and the regular dependencies
 ```
-npm install --save dat-sdk@next
+npm install --save dat-sdk@next @geut/sodium-javascript-plus hyperswarm-web
 ```
 
 Add this as the `build` command in your `package.json`. It is important to add the transform (`-t`) with `babelify` to make it work. Babel will use the aliases in the [babel.config.json](https://github.com/datproject/sdk/blob/master/babel.config.json) file to change the code from nodejs to browser.
