@@ -34,6 +34,8 @@ const SDK = require('dat-sdk')
 
 ## Building a bundle for Browsers
 
+The easiest way to get started is to run the `build` command in this `sdk`, then copy the `bundle.js` into your own project. Here's how:
+
 ```shell
 git clone git@github.com:datproject/sdk.git
 
@@ -55,18 +57,31 @@ npm run build
 
 ## Compile with Browserify
 
+If the bundle above doesn't work for your setup, and you want to DIY in your own project, you'll need to mimic how the SDK generates the bundle, using:
+
+- [x] Browserify
+- [x] Babelify (babel for browserify)
+- [x] babel.config.json file
+
+Combine [Browserify](http://browserify.org/) with [Babel](https://babeljs.io/) (via [Babelify](https://www.npmjs.com/package/babelify)) to make this work in the browser:
+
+**Dev** Dependencies (*must* be a DevDependency):
+
 ```
-npm install --save-dev browserify
-npm install --save dat-sdk@next
+npm install --save-dev browserify babelify util 
+```
+and the regular dependencies
+```
+npm install --save dat-sdk@next @geut/sodium-javascript-plus hyperswarm-web
 ```
 
-Add this as the `build` command in your package.json
+Add this as the `build` command in your `package.json`. It is important to add the transform (`-t`) with `babelify` to make it work. Babel will use the aliases in the [babel.config.json](https://github.com/datproject/sdk/blob/master/babel.config.json) file to change the code from nodejs to browser.
 
 ```shell
-browserify index.js > bundle.js
+"build": "browserify -t [ babelify --global ] index.js > bundle.js"
 ```
 
-Then you can use `bundle.js` in your project.
+Once you `npm run build` then you can use the generated `bundle.js` in your project!
 
 ## Compile with Webpack (webpack.config.js)
 
