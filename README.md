@@ -239,12 +239,17 @@ The API supports both promises and callbacks. Everywhere where you see `await`, 
 
 Creates an instance of the Dat SDK based on the options.
 
+- `opts.backend`: Optionally change the backend for the Dat SDK. Defaults to `native`.
+  - The `native` backends works both in the browser and in Node.js. It runs the full stack (hypercore storage, and hyperswarm networking) in the SDK. When running in the browser, it needs a [hyperswarm-web](https://github.com/RangerMauve/hyperswarm-web) proxy for peer to peer connectivity.
+  - The `hyperspace` backend currently only works in Node.js. It needs a [hyperspace](https://github.com/hyperspace-org/hyperspace) server running on the same machine. It does not yet support the `deriveSecret` function (will throw an exception if used).
+  - For advanced usecases, the `backend` opt can also be an async function that returns a backend implementation (see the existing backends on what needs to be returned).
 - `opts.applicationName`: An optional name for the application using the SDK. This will automatically silo your data from other applications using the SDK and will store it in the appropriate place using [random-access-application](https://github.com/RangerMauve/random-access-application/)
 - `opts.persist: true`: An optional arg for whether data should be persisted. Set this to `false` if you want stuff stored in memory. Ignored if you pass in a custom storage or corestore.
-- `opts.storage`: An optional [random-access-storage](https://github.com/random-access-storage/random-access-storage) instance for storing data.
+- `opts.storage`: An optional [random-access-storage](https://github.com/random-access-storage/random-access-storage) instance for storing data *(native backend only)*.
+- `opts.hyperspaceClient`: An optional [@hyperspace/client](https://github.com/hypercore-protocol/hyperspace-client) instance *(hyperspace backend only)*
 - `opts.corestore`: An optional [Corestore](https://github.com/andrewosh/corestore) instance for using as hypercore storage.
 - `opts.corestoreOpts`: Options to pass into Corestore when it's initialized.
-- `opts.swarmOpts`: This lets you configure [hyperswarm](https://github.com/hyperswarm/hyperswarm) and [hyperswarm-web](https://github.com/RangerMauve/hyperswarm-web)
+- `opts.swarmOpts`: This lets you configure [hyperswarm](https://github.com/hyperswarm/hyperswarm) and [hyperswarm-web](https://github.com/RangerMauve/hyperswarm-web) *(native backend only)*
   - `maxPeers`: The maximum number of connections to keep for this swarm.
   - `ephemeral **Node**`: Set to `false` if this is going to be in a long running process on a server. 
   - `bootstap **Node**`: An array of addresses to use for the DHT bootstraping. Defaults to `['bootstrap1.hyperdht.org:49737', 'bootstrap2.hyperdht.org:49737', 'bootstrap3.hyperdht.org:49737']`
@@ -253,10 +258,8 @@ Creates an instance of the Dat SDK based on the options.
   - `wsProxy **Browser**: 'wss://hyperswarm.mauve.moe' **BROWSER**`: The Websocket proxy used for [hyperswarm-proxy-ws](https://github.com/RangerMauve/hyperswarm-proxy-ws)
 - `opts.driveOpts`: This lets you configure the behavior of [Hyperdrive](https://github.com/mafintosh/hyperdrive) instances
   - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
-  - `persist: true`: Whether the data should be persisted to storage. Set to false to create in-memory archives
 - `opts.coreOpts`: This lets you configure the behavior of [Hypercore](https://github.com/mafintosh/hypercore) instances
   - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
-  - `persist: true`: Whether the data should be persisted to storage. Set to false to create in-memory feeds
   - `extensions`: The set of extension message types to use with this feed when replicating.
   - `valueEncoding: 'json' | 'utf-8' | 'binary'`: The encoding to use for the data stored in the hypercore. Use JSON to store / retrieve objects.
 - `opts.dnsOpts`: Configure the [dat dns](https://github.com/datprotocol/dat-dns) resolution module. You probably shouldn't mess with this.
