@@ -27,9 +27,7 @@
   },
   "browser": {
     "dat-dns": "./dns-web.js",
-    "hyperswarm": "hyperswarm-web",
-    "sodium-native": "@geut/sodium-javascript-plus",
-    "sodium-universal": "@geut/sodium-javascript-plus"
+    "hyperswarm": "hyperswarm-web"
   },
   "browserify": {
     "transform": [
