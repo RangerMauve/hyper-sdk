@@ -43,7 +43,7 @@ async function run () {
     const drive = Hyperdrive('Example drive 1')
 
     drive.writeFile('/example.txt', 'Hello World!', (err) => {
-      t.notOk(err, 'Able to write to hyperdrive')
+      t.error(err, 'Able to write to hyperdrive')
 
       t.end()
     })
@@ -69,13 +69,13 @@ async function run () {
     const drive1 = Hyperdrive2('Example drive 3')
 
     drive1.writeFile('/index.html', EXAMPLE_DATA, (err) => {
-      t.notOk(err, 'wrote to initial archive')
+      t.error(err, 'wrote to initial archive')
       const drive = Hyperdrive(drive1.key)
       t.deepEqual(drive1.key, drive.key, 'loaded correct archive')
-      drive.once('peer-add', () => {
+      drive.once('peer-open', () => {
         t.pass('Got peer for drive')
         drive.readFile('/index.html', 'utf8', (err, data) => {
-          t.notOk(err, 'loaded file without error')
+          t.error(err, 'loaded file without error')
           t.equal(data, EXAMPLE_DATA)
 
           t.end()
@@ -92,17 +92,24 @@ async function run () {
     const drive1 = Hyperdrive2('Example drive 4', { persist: false })
 
     drive1.writeFile('/index.html', EXAMPLE_DATA, (err) => {
-      t.notOk(err, 'wrote to initial archive')
+      t.error(err, 'wrote to initial archive')
       const drive = Hyperdrive(drive1.key, { persist: false })
       t.deepEqual(drive1.key, drive.key, 'loaded correct archive')
-      drive.once('peer-add', () => {
+
+      drive.ready(() => {
+        if (drive.peers.length) testFile()
+        else drive.once('peer-open', testFile)
+      })
+
+      function testFile () {
+        t.pass('got peer')
         drive.readFile('/index.html', 'utf8', (err, data) => {
-          t.notOk(err, 'loaded file without error')
+          t.error(err, 'loaded file without error')
           t.equal(data, EXAMPLE_DATA)
 
           t.end()
         })
-      })
+      }
     })
   })
 
@@ -124,7 +131,7 @@ async function run () {
     t.timeoutAfter(TEST_TIMEOUT)
 
     resolveName(EXAMPLE_DNS_URL, (err, resolved) => {
-      t.notOk(err, 'Resolved successfully')
+      t.error(err, 'Resolved successfully')
 
       t.equal(resolved, EXAMPLE_DNS_RESOLUTION)
       t.end()
@@ -137,7 +144,7 @@ async function run () {
     const core = Hypercore('Example hypercore 1')
 
     core.append('Hello World', (err) => {
-      t.notOk(err, 'able to write to hypercore')
+      t.error(err, 'able to write to hypercore')
 
       t.end()
     })
@@ -152,11 +159,13 @@ async function run () {
     core1.append('Hello World', () => {
       const core2 = Hypercore2(core1.key)
 
-      t.deepEqual(core2.key, core1.key, 'loaded key correctly')
+      core2.ready(() => {
+        t.deepEqual(core2.key, core1.key, 'loaded key correctly')
+      })
 
-      core2.once('peer-add', () => {
+      core2.once('peer-open', () => {
         core2.get(0, (err, data) => {
-          t.notOk(err, 'no error reading from core')
+          t.error(err, 'no error reading from core')
           t.ok(data, 'got data from replicated core')
 
           t.end()
@@ -176,9 +185,9 @@ async function run () {
 
       t.deepEqual(core2.key, core1.key, 'loaded key correctly')
 
-      core2.once('peer-add', () => {
+      core2.once('peer-open', () => {
         core2.get(0, (err, data) => {
-          t.notOk(err, 'no error reading from core')
+          t.error(err, 'no error reading from core')
           t.ok(data, 'got data from replicated core')
           t.end()
         })
@@ -201,7 +210,7 @@ async function run () {
       core1.close(() => {
         t.pass('First core closed')
         core1.get(0, (err) => {
-          t.notOk(err, 'Still able to read after close')
+          t.error(err, 'Still able to read after close')
           core2.close(() => {
             t.pass('Second core closed')
           })

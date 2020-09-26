@@ -338,11 +338,11 @@ async function SDK ({
     })
   }
 
-  function cacheCore(core) {
+  function cacheCore (core) {
     corestore.inner.cache.set(core.discoveryKey.toString('hex'), core)
   }
 
-  function uncacheCore(core) {
+  function uncacheCore (core) {
     corestore.inner.cache.delete(core.discoveryKey.toString('hex'))
   }
 }
