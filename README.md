@@ -96,8 +96,6 @@ module.exports = {
   resolve: {
     alias: {
       fs: 'graceful-fs',
-      'sodium-native': '@geut/sodium-javascript-plus',
-      'sodium-universal': '@geut/sodium-javascript-plus',
       hyperswarm: 'hyperswarm-web',
       util: './node_modules/util/util.js'
     }
