@@ -108,7 +108,7 @@ module.exports = async function run (createTestSDKs, name) {
     })
   })
 
-  test.skip(name + ': resolveName - resolve and load archive', (t) => {
+  test(name + ': resolveName - resolve and load archive', (t) => {
     t.timeoutAfter(TEST_TIMEOUT)
 
     resolveName(EXAMPLE_DNS_URL, (err, resolved) => {
