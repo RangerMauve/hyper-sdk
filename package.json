@@ -4,9 +4,9 @@
   "description": "The official Dat SDK",
   "main": "index.js",
   "scripts": {
-    "test": "node test",
+    "test": "node test/node.js",
     "build": "cross-env BABEL_DISABLE_CACHE=1 browserify -t [ babelify --global ] --standalone datSDK index.js > dat-sdk-bundle.js",
-    "build-test": "cross-env BABEL_DISABLE_CACHE=1 browserify -t [ babelify --global ] -d test.js > test-bundle.js",
+    "build-test": "cross-env BABEL_DISABLE_CACHE=1 browserify -t [ babelify --global ] -d test/browser.js > test-bundle.js",
     "update-deps": "npm install --save hyperswarm@latest @corestore/networker@latest hyperdrive@latest corestore@latest hypercore@latest hypercore-protocol@latest hypercore-crypto@latest @geut/hyperdrive-promise@latest @geut/hypercore-promise@latest"
   },
   "repository": {
@@ -27,7 +27,8 @@
   },
   "browser": {
     "dat-dns": "./dns-web.js",
-    "hyperswarm": "hyperswarm-web"
+    "hyperswarm": "hyperswarm-web",
+    "./hyperspace": "./hyperspace.browser.js"
   },
   "browserify": {
     "transform": [

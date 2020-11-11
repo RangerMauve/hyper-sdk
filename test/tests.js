@@ -1,95 +1,7 @@
-const SDK = require('./')
-const dht = require('@hyperswarm/dht')
 const test = require('tape')
-const RAA = require('random-access-application')
-const tmp = require('tmp')
 
-const { createMany } = require('hyperspace/test/helpers/create')
-
-const isBrowser = process.title === 'browser'
-
-tmp.setGracefulCleanup()
-runAll()
-
-async function runAll () {
-  await run(createNative, 'native')
-  await run(createHyperspace, 'hyperspace')
-  await run(createMixed, 'mixed')
-}
-
-async function createMixed () {
-  const native = await createNative()
-  const hyperspace = await createHyperspace()
-  const sdk1 = hyperspace.sdk[0]
-  const sdk2 = native.sdk[0]
-  return { sdk: [sdk1, sdk2], cleanup }
-  function cleanup () {
-    native.cleanup()
-    hyperspace.cleanup()
-  }
-}
-
-async function createNative () {
-  const { bootstrap, cleanup: cleanupDht } = await createDHT()
-
-  const sdk1 = await SDK({
-    storage: getNewStorage(),
-    swarmOpts: { bootstrap }
-  })
-  const sdk2 = await SDK({
-    storage: getNewStorage(),
-    swarmOpts: { bootstrap }
-  })
-
-  return { sdk: [sdk1, sdk2], cleanup, bootstrap }
-
-  function cleanup () {
-    cleanupDht()
-  }
-
-  async function createDHT () {
-    const bootstrapper = dht({
-      bootstrap: false
-    })
-    bootstrapper.listen()
-    await new Promise(resolve => {
-      return bootstrapper.once('listening', resolve)
-    })
-    const bootstrapPort = bootstrapper.address().port
-    const bootstrapOpt = [`localhost:${bootstrapPort}}`]
-    return { bootstrap: bootstrapOpt, cleanup }
-
-    function cleanup () {
-      bootstrapper.destroy()
-    }
-  }
-}
-
-async function createHyperspace () {
-  const { clients, cleanup: cleanupHyperspace } = await createMany(2)
-  const sdk1 = await SDK({ hyperspaceClient: clients[0] })
-  const sdk2 = await SDK({ hyperspaceClient: clients[1] })
-  return { sdk: [sdk1, sdk2], cleanup }
-
-  function cleanup () {
-    cleanupHyperspace()
-  }
-}
-
-function getNewStorage () {
-  if (isBrowser) {
-    // Get a random number, use it for random-access-application
-    const name = Math.random().toString()
-    return RAA(name)
-  } else {
-    return tmp.dirSync({
-      prefix: 'dat-sdk-tests-'
-    }).name
-  }
-}
-
-async function run (createTestSDK, name) {
-  const { sdk, cleanup } = await createTestSDK()
+module.exports = async function run (createTestSDKs, name) {
+  const { sdk, cleanup } = await createTestSDKs()
   const { Hyperdrive, Hypercore, resolveName, close } = sdk[0]
   const { Hyperdrive: Hyperdrive2, Hypercore: Hypercore2, close: close2 } = sdk[1]
 
@@ -101,7 +13,7 @@ async function run (createTestSDK, name) {
   test.onFinish(() => {
     close(() => {
       close2(() => {
-        cleanup()
+        setTimeout(cleanup, 100)
       })
     })
   })

@@ -81,10 +81,8 @@ async function SDK (opts = {}) {
       core.close()
     }
 
-    corestore.close(() => {
-      if (handlers.close) handlers.close(cb)
-      else cb()
-    })
+    if (handlers.close) handlers.close(cb)
+    else cb()
   }
 
   function resolveName (url, cb) {
