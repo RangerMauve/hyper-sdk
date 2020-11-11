@@ -9,6 +9,8 @@ Dat consists of a bunch of low level building blocks for working with data in di
 
 The Dat SDK combines the lower level pieces of the Dat ecosystem into high level APIs that you can use across platforms so that you can focus on your application rather than the gritty details of how it works.
 
+The Dat SDK can either work "natively", which means the full storage and networking stack runs directly within the SDK. Alternatively, it supports the [hyperspace](https://github.com/hypercore-protocol/hyperspace) daemon. In this mode, the SDK needs a hyperspace daemon running and will connect to it as a client. Currently, the latter is only supported in Node.js (not in browsers).
+
 ## Goals
 
 - High level API
@@ -289,6 +291,7 @@ You can use this to identify peers in the network using `peer.remotePublicKey`
 Derives a secret key based on the SDK's master key.
 `namespace` can be used to namespace different applications, and `name` is the name of the key you want.
 This can be used as a seed for generating secure private keys without needing to store an extra key on disk.
+This function is currently only supported in the native backend.
 
 ### `const extension = registerExtension(name, handlers)`
 
