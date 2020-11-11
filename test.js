@@ -1,10 +1,80 @@
 const SDK = require('./')
+const dht = require('@hyperswarm/dht')
 const test = require('tape')
 const RAA = require('random-access-application')
+const tmp = require('tmp')
 
 const { createMany } = require('hyperspace/test/helpers/create')
 
 const isBrowser = process.title === 'browser'
+
+tmp.setGracefulCleanup()
+runAll()
+
+async function runAll () {
+  await run(createNative, 'native')
+  await run(createHyperspace, 'hyperspace')
+  await run(createMixed, 'mixed')
+}
+
+async function createMixed () {
+  const native = await createNative()
+  const hyperspace = await createHyperspace()
+  const sdk1 = hyperspace.sdk[0]
+  const sdk2 = native.sdk[0]
+  return { sdk: [sdk1, sdk2], cleanup }
+  function cleanup () {
+    native.cleanup()
+    hyperspace.cleanup()
+  }
+}
+
+async function createNative () {
+  const { bootstrap, cleanup: cleanupDht } = await createDHT()
+
+  const sdk1 = await SDK({
+    storage: getNewStorage(),
+    swarmOpts: { bootstrap }
+  })
+  const sdk2 = await SDK({
+    storage: getNewStorage(),
+    swarmOpts: { bootstrap }
+  })
+
+  return { sdk: [sdk1, sdk2], cleanup, bootstrap }
+
+  function cleanup () {
+    cleanupDht()
+  }
+
+  async function createDHT () {
+    const bootstrapper = dht({
+      bootstrap: false
+    })
+    bootstrapper.listen()
+    await new Promise(resolve => {
+      return bootstrapper.once('listening', resolve)
+    })
+    const bootstrapPort = bootstrapper.address().port
+    const bootstrapOpt = [`localhost:${bootstrapPort}}`]
+    return { bootstrap: bootstrapOpt, cleanup }
+
+    function cleanup () {
+      bootstrapper.destroy()
+    }
+  }
+}
+
+async function createHyperspace () {
+  const { clients, cleanup: cleanupHyperspace } = await createMany(2)
+  const sdk1 = await SDK({ hyperspaceClient: clients[0] })
+  const sdk2 = await SDK({ hyperspaceClient: clients[1] })
+  return { sdk: [sdk1, sdk2], cleanup }
+
+  function cleanup () {
+    cleanupHyperspace()
+  }
+}
 
 function getNewStorage () {
   if (isBrowser) {
@@ -12,39 +82,14 @@ function getNewStorage () {
     const name = Math.random().toString()
     return RAA(name)
   } else {
-    return require('tmp').dirSync({
+    return tmp.dirSync({
       prefix: 'dat-sdk-tests-'
     }).name
   }
 }
 
-async function createNative () {
-  const sdk1 = await SDK({
-    storage: getNewStorage()
-  })
-  const sdk2 = await SDK({
-    storage: getNewStorage()
-  })
-  return { sdk: [sdk1, sdk2], cleanup }
-  function cleanup () {}
-}
-
-async function createHyperspace () {
-  const { clients, cleanup } = await createMany(2)
-  const sdk1 = await SDK({ hyperspaceClient: clients[0] })
-  const sdk2 = await SDK({ hyperspaceClient: clients[1] })
-  return { sdk: [sdk1, sdk2], cleanup }
-}
-
-runAll()
-
-async function runAll () {
-  await run(createNative)
-  await run(createHyperspace)
-}
-
-async function run (createSDK) {
-  const { sdk, cleanup } = await createSDK()
+async function run (createTestSDK, name) {
+  const { sdk, cleanup } = await createTestSDK()
   const { Hyperdrive, Hypercore, resolveName, close } = sdk[0]
   const { Hyperdrive: Hyperdrive2, Hypercore: Hypercore2, close: close2 } = sdk[1]
 
@@ -56,12 +101,12 @@ async function run (createSDK) {
   test.onFinish(() => {
     close(() => {
       close2(() => {
-        setTimeout(cleanup, 100)
+        cleanup()
       })
     })
   })
 
-  test('Hyperdrive - create drive', (t) => {
+  test(name + ': Hyperdrive - create drive', (t) => {
     t.timeoutAfter(TEST_TIMEOUT)
 
     const drive = Hyperdrive('Example drive 1')
@@ -73,7 +118,7 @@ async function run (createSDK) {
     })
   })
 
-  test('Hyperdrive - get existing drive', (t) => {
+  test(name + ': Hyperdrive - get existing drive', (t) => {
     const drive = Hyperdrive('Example drive 2')
 
     drive.ready(() => {
@@ -85,7 +130,7 @@ async function run (createSDK) {
     })
   })
 
-  test('Hyperdrive - load drive over network', (t) => {
+  test(name + ': Hyperdrive - load drive over network', (t) => {
     t.timeoutAfter(TEST_TIMEOUT)
 
     const EXAMPLE_DATA = 'Hello World!'
@@ -108,7 +153,7 @@ async function run (createSDK) {
     })
   })
 
-  test('Hyperdrive - replicate in-memory drive', (t) => {
+  test(name + ': Hyperdrive - replicate in-memory drive', (t) => {
     t.timeoutAfter(TEST_TIMEOUT)
 
     const EXAMPLE_DATA = 'Hello World!'
@@ -137,7 +182,7 @@ async function run (createSDK) {
     })
   })
 
-  test('Hyperdrive - new drive created after close', (t) => {
+  test(name + ': Hyperdrive - new drive created after close', (t) => {
     const drive = Hyperdrive('Example drive 5')
 
     drive.ready(() => {
@@ -151,7 +196,7 @@ async function run (createSDK) {
     })
   })
 
-  test('resolveName - resolve and load archive', (t) => {
+  test.skip(name + ': resolveName - resolve and load archive', (t) => {
     t.timeoutAfter(TEST_TIMEOUT)
 
     resolveName(EXAMPLE_DNS_URL, (err, resolved) => {
@@ -162,7 +207,7 @@ async function run (createSDK) {
     })
   })
 
-  test('Hypercore - create', (t) => {
+  test(name + ': Hypercore - create', (t) => {
     t.timeoutAfter(TEST_TIMEOUT)
 
     const core = Hypercore('Example hypercore 1')
@@ -174,7 +219,7 @@ async function run (createSDK) {
     })
   })
 
-  test('Hypercore - load from network', (t) => {
+  test(name + ': Hypercore - load from network', (t) => {
     t.timeoutAfter(TEST_TIMEOUT)
     t.plan(3)
 
@@ -198,7 +243,7 @@ async function run (createSDK) {
     })
   })
 
-  test('Hypercore - replicate in-memory cores', (t) => {
+  test(name + ': Hypercore - replicate in-memory cores', (t) => {
     t.timeoutAfter(TEST_TIMEOUT)
     t.plan(3)
 
@@ -219,7 +264,7 @@ async function run (createSDK) {
     })
   })
 
-  test('Hypercore - only close when all handles are closed', (t) => {
+  test(name + ': Hypercore - only close when all handles are closed', (t) => {
     t.timeoutAfter(TEST_TIMEOUT)
     t.plan(5)
 
