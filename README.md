@@ -9,7 +9,7 @@ Dat consists of a bunch of low level building blocks for working with data in di
 
 The Dat SDK combines the lower level pieces of the Dat ecosystem into high level APIs that you can use across platforms so that you can focus on your application rather than the gritty details of how it works.
 
-The Dat SDK can either work "natively", which means the full storage and networking stack runs directly within the SDK. Alternatively, it supports the [hyperspace](https://github.com/hypercore-protocol/hyperspace) daemon. In this mode, the SDK needs a hyperspace daemon running and will connect to it as a client. Currently, the latter is only supported in Node.js (not in browsers).
+The Dat SDK can either work "natively", which means the full storage and networking stack runs directly within the SDK. Alternatively, it supports the experimental [hyperspace](https://github.com/hypercore-protocol/hyperspace) daemon. In this mode, the SDK needs a hyperspace daemon running and will connect to it as a client.
 
 ## Goals
 
@@ -239,7 +239,7 @@ All available tests are run three times: For the native backend, for the hypersp
 
 To run tests in Node.js simply run `npm run test` in a checkout.
 
-To run the tests in a browser, first run `npm run build-test` to build the test bundle. Then, run `npm run test-proxy` to run both a [hyperswarm-web](https://github.com/RangerMauve/hyperswarm-web) proxy and two Hyperspace servers that listen for clients on a websocket. Finally, open `[test.html](test.html)` in a web browser and open the developer tools, where you should see the test results in the console.
+To run the tests in a browser, first run `npm run build-test` to build the test bundle. Then, run `npm run test-proxy` to run both a [hyperswarm-web](https://github.com/RangerMauve/hyperswarm-web) proxy and two Hyperspace servers that listen for clients on a websocket. Finally, open [`test.html`](test.html) in a web browser and open the developer tools, where you should see the test results in the console.
 
 ## API
 
@@ -253,7 +253,7 @@ When running in a web browser, it needs a [hyperswarm-web](https://github.com/Ra
 
 ### const SDK = require('dat-sdk/hyperspace')
 
-Import the SDK contructor using the *hyperspace* backend. Here, the SDK needs a running hyperspace server.
+Import the SDK contructor using the experimental *hyperspace* backend. Here, the SDK needs a running hyperspace server.
 
 When running in NodeJS, this will attempt to connect to a hyperspace server running on the same machine. When running in a web browser, this will attempt to connect to a Hyperspace server over Websockets (experimental).
 
