@@ -73,7 +73,6 @@
     "random-access-file": "^2.1.3",
     "tape": "^4.10.2",
     "tmp": "^0.1.0",
-    "tmp-promise": "^3.0.2",
     "util": "^0.12.2"
   }
 }
