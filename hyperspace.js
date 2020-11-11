@@ -1,14 +1,36 @@
 const HyperspaceClient = require('@hyperspace/client')
+const { connect } = require('webnet')
+const SDK = require('./sdk')
 
-module.exports = async function hyperspaceBackend (opts) {
+const isBrowser = process.title === 'browser'
+
+module.exports = async function createSDK (opts) {
+  return SDK({ ...opts, backend: hyperspaceBackend })
+}
+module.exports.createBackend = hyperspaceBackend
+
+async function hyperspaceBackend (opts) {
   let {
     corestore,
-    hyperspaceClient,
-    clientOpts
+    hyperspaceOpts = {}
   } = opts
 
+  let hyperspaceClient
   if (!corestore) {
-    if (!hyperspaceClient) {
+    let { client, protocol, port, host } = hyperspaceOpts
+    if (client) {
+      hyperspaceClient = client
+    } else {
+      if (!protocol) {
+        protocol = isBrowser ? 'ws' : 'uds'
+      }
+      let clientOpts
+      if (protocol === 'ws') {
+        port = port || 9000
+        clientOpts = connect(port, host)
+      } else if (protocol === 'uds') {
+        clientOpts = { host, port }
+      }
       hyperspaceClient = new HyperspaceClient(clientOpts)
     }
     await hyperspaceClient.ready()

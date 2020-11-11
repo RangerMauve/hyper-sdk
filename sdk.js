@@ -18,16 +18,25 @@ const DEFAULT_CORE_OPTS = {
   persist: true
 }
 const DEFAULT_DNS_OPTS = {}
+const DEFAULT_APPLICATION_NAME = 'dat-sdk'
 
 const CLOSE_FN = Symbol('close')
 const HANDLE_COUNT = Symbol('closeCount')
 
 module.exports = SDK
+module.exports.DEFAULT_APPLICATION_NAME = DEFAULT_APPLICATION_NAME
 
 // TODO: Set up Promise API based on Beaker https://github.com/beakerbrowser/beaker/blob/blue-hyperdrive10/app/bg/web-apis/fg/hyperdrive.js
 
 async function SDK (opts = {}) {
   if (!opts.backend) throw new Error('No backend was passed in')
+
+  if (!opts.applicationName) {
+    opts.applicationName = DEFAULT_APPLICATION_NAME
+  }
+  if (opts.persist === undefined) {
+    opts.persist = true
+  }
 
   const {
     backend,

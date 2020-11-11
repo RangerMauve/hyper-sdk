@@ -4,10 +4,13 @@
   "description": "The official Dat SDK",
   "main": "index.js",
   "scripts": {
-    "test": "node test/node.js",
+    "test": "node test/test.js",
     "build": "cross-env BABEL_DISABLE_CACHE=1 browserify -t [ babelify --global ] --standalone datSDK index.js > dat-sdk-bundle.js",
-    "build-test": "cross-env BABEL_DISABLE_CACHE=1 browserify -t [ babelify --global ] -d test/browser.js > test-bundle.js",
-    "update-deps": "npm install --save hyperswarm@latest @corestore/networker@latest hyperdrive@latest corestore@latest hypercore@latest hypercore-protocol@latest hypercore-crypto@latest @geut/hyperdrive-promise@latest @geut/hypercore-promise@latest"
+    "build-test": "cross-env BABEL_DISABLE_CACHE=1 browserify -t [ babelify --global ] -d test/test.js > test-bundle.js",
+    "update-deps": "npm install --save hyperswarm@latest @corestore/networker@latest hyperdrive@latest corestore@latest hypercore@latest hypercore-protocol@latest hypercore-crypto@latest @geut/hyperdrive-promise@latest @geut/hypercore-promise@latest",
+    "test-proxy": "run-p proxy:hyperspace proxy:hyperswarm",
+    "proxy:hyperspace": "node test/lib/hyperspace-webnet-servers.js",
+    "proxy:hyperswarm": "hyperswarm-web"
   },
   "repository": {
     "type": "git",
@@ -28,7 +31,7 @@
   "browser": {
     "dat-dns": "./dns-web.js",
     "hyperswarm": "hyperswarm-web",
-    "./hyperspace": "./hyperspace.browser.js"
+    "net": "webnet"
   },
   "browserify": {
     "transform": [
@@ -66,14 +69,18 @@
   },
   "devDependencies": {
     "@babel/core": "^7.9.0",
+    "@babel/plugin-proposal-class-properties": "^7.12.1",
     "babel-plugin-module-resolver": "^4.0.0",
     "babelify": "^10.0.0",
     "browserify": "^16.2.3",
     "cross-env": "^7.0.2",
     "hyperspace": "^3.9.0",
+    "npm-run-all": "^4.1.5",
     "random-access-file": "^2.1.3",
     "tape": "^4.10.2",
     "tmp": "^0.1.0",
-    "util": "^0.12.2"
+    "tmp-promise": "^3.0.2",
+    "util": "^0.12.2",
+    "webnet": "^1.0.0"
   }
 }

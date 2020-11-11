@@ -3,6 +3,7 @@ const RAA = require('random-access-application')
 const RAM = require('random-access-memory')
 const HypercoreProtocol = require('hypercore-protocol')
 const Corestore = require('corestore')
+const SDK = require('./sdk')
 
 const DEFAULT_SWARM_OPTS = {
   extensions: [],
@@ -12,7 +13,12 @@ const DEFAULT_CORESTORE_OPTS = {
   sparse: true
 }
 
-module.exports = async function nativeBackend (opts) {
+module.exports = async function createSDK (opts) {
+  return SDK({ ...opts, backend: nativeBackend })
+}
+module.exports.createBackend = nativeBackend
+
+async function nativeBackend (opts) {
   let {
     storage,
     corestore,
