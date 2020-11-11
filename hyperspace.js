@@ -32,6 +32,6 @@ module.exports = async function hyperspaceBackend (opts) {
   }
 
   function close (cb) {
-    cb()
+    corestore.close(cb)
   }
 }

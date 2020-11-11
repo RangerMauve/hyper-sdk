@@ -63,6 +63,8 @@ module.exports = async function nativeBackend (opts) {
   }
 
   function close (cb) {
-    swarm.close().then(cb, cb)
+    corestore.close(() => {
+      swarm.close().then(cb, cb)
+    })
   }
 }
