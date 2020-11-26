@@ -885,6 +885,17 @@ Emitted when a new peer has started replicating with the feed.
 Emitted when a peer has stopped replicating with the feed.
 
 
+## Potential WebRTC performance enhancement
+
+If you are finding that WebRTC connections are not reliably made, you may get improved performance by using this:
+
+https://github.com/webrtcHacks/adapter
+
+E.g. In the browser code:
+
+  `<script src="lib/adaptor.js"></script>
+  <script src="lib/dat-sdk-bundle.js"></script>`
+
 ---
 
 [Dat Project]: https://dat.foundation
