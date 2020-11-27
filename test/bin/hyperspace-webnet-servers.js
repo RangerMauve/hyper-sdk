@@ -3,14 +3,17 @@ const dht = require('@hyperswarm/dht')
 const HyperspaceServer = require('hyperspace/server')
 const webnet = require('webnet')
 
-main().catch(console.error)
-async function main () {
-  await createMany(2)
-  // TODO: Cleanup on process exit.
+const n = parseInt(process.argv[2]) || 2
+main(n).catch(console.error)
+
+async function main (n) {
+  const { cleanup } = await createMany(n)
+  process.once('SIGINT', cleanup)
+  process.once('SIGTERM', cleanup)
 }
 
 async function createOne (opts = {}) {
-  const tmpDir = opts.dir || await tmp.dir({ unsafeCleanup: true })
+  const tmpDir = opts.dir || await tmp.dir({ prefix: 'dat-sdk-hyperspace', unsafeCleanup: true })
   const webnetServer = webnet.createServer()
   webnetServer.on('listening', () => {
     console.log(`Hyperspace server listening on ws://localhost:${opts.port}`)

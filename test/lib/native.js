@@ -3,23 +3,22 @@ const RAA = require('random-access-application')
 
 const isBrowser = process.title === 'browser'
 
-module.exports = async function createNative () {
+module.exports = async function createNative (n) {
   let swarmOpts, localDht
   if (!isBrowser) {
     localDht = await createDHT()
     swarmOpts = { bootstrap: localDht.bootstrap }
   }
+  const sdks = []
+  while (--n >= 0) {
+    const sdk = await SDK({
+      storage: getNewStorage(),
+      swarmOpts
+    })
+    sdks.push(sdk)
+  }
 
-  const sdk1 = await SDK({
-    storage: getNewStorage(),
-    swarmOpts
-  })
-  const sdk2 = await SDK({
-    storage: getNewStorage(),
-    swarmOpts
-  })
-
-  return { sdk: [sdk1, sdk2], cleanup }
+  return { sdks, cleanup }
 
   function cleanup () {
     if (localDht) localDht.cleanup()

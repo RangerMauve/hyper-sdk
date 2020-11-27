@@ -1,30 +1,33 @@
 const SDK = require('../../hyperspace')
 
 const isBrowser = process.title === 'browser'
+const HYPERSPACE_TEST_PORT = 9000
 
-module.exports = async function createHyperspace () {
+module.exports = async function createHyperspace (n) {
   const cleanups = []
-  const sdk = []
+  const sdks = []
   if (!isBrowser) {
     const { createMany } = require('hyperspace/test/helpers/create')
-    const { clients, cleanup: cleanupHyperspace } = await createMany(2)
+    const { clients, cleanup: cleanupHyperspace } = await createMany(n)
     cleanups.push(cleanupHyperspace)
-    sdk[0] = await SDK({
-      hyperspaceOpts: { client: clients[0] }
-    })
-    sdk[1] = await SDK({
-      hyperspaceOpts: { client: clients[1] }
-    })
+    for (const client of clients) {
+      const sdk = await SDK({
+        hyperspaceOpts: { client }
+      })
+      sdks.push(sdk)
+    }
   } else {
-    sdk[0] = await SDK({
-      hyperspaceOpts: { port: 9000 }
-    })
-    sdk[1] = await SDK({
-      hyperspaceOpts: { port: 9001 }
-    })
+    let port = HYPERSPACE_TEST_PORT
+    while (port < HYPERSPACE_TEST_PORT + n) {
+      const sdk = await SDK({
+        hyperspaceOpts: { port }
+      })
+      sdks.push(sdk)
+      port++
+    }
   }
 
-  return { sdk, cleanup }
+  return { sdks, cleanup }
 
   function cleanup () {
     for (const cleanup of cleanups) {

@@ -1,6 +1,7 @@
 const test = require('tape')
 const createNative = require('./lib/native')
 const createHyperspace = require('./lib/hyperspace')
+const createMixed = require('./lib/mixed')
 
 runAll()
 
@@ -10,22 +11,10 @@ async function runAll () {
   await run(createMixed, 'mixed')
 }
 
-async function createMixed () {
-  const native = await createNative()
-  const hyperspace = await createHyperspace()
-  const sdk1 = hyperspace.sdk[0]
-  const sdk2 = native.sdk[0]
-  return { sdk: [sdk1, sdk2], cleanup }
-  function cleanup () {
-    native.cleanup()
-    hyperspace.cleanup()
-  }
-}
-
 async function run (createTestSDKs, name) {
-  const { sdk, cleanup } = await createTestSDKs()
-  const { Hyperdrive, Hypercore, resolveName, close } = sdk[0]
-  const { Hyperdrive: Hyperdrive2, Hypercore: Hypercore2, close: close2 } = sdk[1]
+  const { sdks, cleanup } = await createTestSDKs(2)
+  const { Hyperdrive, Hypercore, resolveName, close } = sdks[0]
+  const { Hyperdrive: Hyperdrive2, Hypercore: Hypercore2, close: close2 } = sdks[1]
 
   const TEST_TIMEOUT = 60 * 1000
 
