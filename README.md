@@ -9,6 +9,8 @@ Dat consists of a bunch of low level building blocks for working with data in di
 
 The Dat SDK combines the lower level pieces of the Dat ecosystem into high level APIs that you can use across platforms so that you can focus on your application rather than the gritty details of how it works.
 
+The Dat SDK can either work "natively", which means the full storage and networking stack runs directly within the SDK. Alternatively, it supports the experimental [hyperspace](https://github.com/hypercore-protocol/hyperspace) daemon. In this mode, the SDK needs a hyperspace daemon running and will connect to it as a client.
+
 ## Goals
 
 - High level API
@@ -68,7 +70,7 @@ Combine [Browserify](http://browserify.org/) with [Babel](https://babeljs.io/) (
 **Dev** Dependencies (*must* be a DevDependency):
 
 ```
-npm install --save-dev browserify babelify util 
+npm install --save-dev browserify babelify util
 ```
 and the regular dependencies
 ```
@@ -231,34 +233,69 @@ trie.put('key', 'value', () => {
 
 ```
 
+## Running tests
+
+All available tests are run three times: For the native backend, for the hyperspace backend, and with one native and one hyperspace backend.
+
+To run tests in Node.js simply run `npm run test` in a checkout.
+
+To run the tests in a browser, first run `npm run build-test` to build the test bundle. Then, run `npm run test-proxy` to run both a [hyperswarm-web](https://github.com/RangerMauve/hyperswarm-web) proxy and two Hyperspace servers that listen for clients on a websocket. Finally, open [`test.html`](test.html) in a web browser and open the developer tools, where you should see the test results in the console.
+
 ## API
 
 The API supports both promises and callbacks. Everywhere where you see `await`, you can instead pass a node-style callback.
+
+### const SDK = require('dat-sdk')
+
+Import the SDK contructor using the *native* backend. This means that the full storage and networking stack runs right within the current process. Works both in Node.js and in web browsers.
+
+When running in a web browser, it needs a [hyperswarm-web](https://github.com/RangerMauve/hyperswarm-web) proxy for peer to peer connectivity.
+
+### const SDK = require('dat-sdk/hyperspace')
+
+Import the SDK contructor using the experimental *hyperspace* backend. Here, the SDK needs a running hyperspace server.
+
+When running in NodeJS, this will attempt to connect to a hyperspace server running on the same machine. When running in a web browser, this will attempt to connect to a Hyperspace server over Websockets (experimental).
+
+*TODO:* Document how to run a Websocket Hyperspace server.
+
+*NOTE:* The *hyperspace* backend does not yet support the `deriveSecret` function (will throw an exception if used).
 
 ### `const {Hypercore, Hyperdrive, resolveName, keyPair, deriveSecret, registerExtension, close} = await SDK(opts?)`
 
 Creates an instance of the Dat SDK based on the options.
 
+Options for the *native* backend:
+
 - `opts.applicationName`: An optional name for the application using the SDK. This will automatically silo your data from other applications using the SDK and will store it in the appropriate place using [random-access-application](https://github.com/RangerMauve/random-access-application/)
 - `opts.persist: true`: An optional arg for whether data should be persisted. Set this to `false` if you want stuff stored in memory. Ignored if you pass in a custom storage or corestore.
-- `opts.storage`: An optional [random-access-storage](https://github.com/random-access-storage/random-access-storage) instance for storing data.
-- `opts.corestore`: An optional [Corestore](https://github.com/andrewosh/corestore) instance for using as hypercore storage.
-- `opts.corestoreOpts`: Options to pass into Corestore when it's initialized.
+- `opts.storage`: An optional [random-access-storage](https://github.com/random-access-storage/random-access-storage) instance for storing data
 - `opts.swarmOpts`: This lets you configure [hyperswarm](https://github.com/hyperswarm/hyperswarm) and [hyperswarm-web](https://github.com/RangerMauve/hyperswarm-web)
   - `maxPeers`: The maximum number of connections to keep for this swarm.
-  - `ephemeral **Node**`: Set to `false` if this is going to be in a long running process on a server. 
+  - `ephemeral **Node**`: Set to `false` if this is going to be in a long running process on a server.
   - `bootstap **Node**`: An array of addresses to use for the DHT bootstraping. Defaults to `['bootstrap1.hyperdht.org:49737', 'bootstrap2.hyperdht.org:49737', 'bootstrap3.hyperdht.org:49737']`
-  - `preferredPort: 42666 **Node**`: The port hyperswarm should try to bind on. You should allow it through your firewall on TCP/UDP for best results. 
+  - `preferredPort: 42666 **Node**`: The port hyperswarm should try to bind on. You should allow it through your firewall on TCP/UDP for best results.
   - `webrtcBootstrap **Browser**: ['https://geut-webrtc-signal.herokuapp.com/'] **BROWSER**`: The WebRTC bootstrap server list used by [discovery-swarm-webrtc](https://github.com/geut/discovery-swarm-webrtc)
   - `wsProxy **Browser**: 'wss://hyperswarm.mauve.moe' **BROWSER**`: The Websocket proxy used for [hyperswarm-proxy-ws](https://github.com/RangerMauve/hyperswarm-proxy-ws)
-- `opts.driveOpts`: This lets you configure the behavior of [Hyperdrive](https://github.com/mafintosh/hyperdrive) instances
-  - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
-  - `persist: true`: Whether the data should be persisted to storage. Set to false to create in-memory archives
+
+Options for the *hyperspace* backend:
+
+- `opts.hyperspaceOpts` Options to initialize the connection to a hyperspace server.
+    - `client`: An optional [@hyperspace/client](https://github.com/hypercore-protocol/hyperspace-client) instance. If not set a client will be created automatically.
+    - `protocol`: The protocol to use. Defaults to `ws` in browsers and `uds` in Node.js.
+    - `port`: If using the `ws` protocol: Port of the Websocket to connect to (default `9000`)
+    - `host`: For `ws` protocol: Hostname of the Websocket to connect to (default `localhost`). For `uds` protocol: Name of the socket (default `hyperspace`).
+
+Options for all backends:
+
+- `opts.corestore`: An optional [Corestore](https://github.com/andrewosh/corestore) instance for using as hypercore storage.
+- `opts.corestoreOpts`: Options to pass into Corestore when it's initialized.
 - `opts.coreOpts`: This lets you configure the behavior of [Hypercore](https://github.com/mafintosh/hypercore) instances
   - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
-  - `persist: true`: Whether the data should be persisted to storage. Set to false to create in-memory feeds
   - `extensions`: The set of extension message types to use with this feed when replicating.
   - `valueEncoding: 'json' | 'utf-8' | 'binary'`: The encoding to use for the data stored in the hypercore. Use JSON to store / retrieve objects.
+- `opts.driveOpts`: This lets you configure the behavior of [Hyperdrive](https://github.com/mafintosh/hyperdrive) instances
+  - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
 - `opts.dnsOpts`: Configure the [dat dns](https://github.com/datprotocol/dat-dns) resolution module. You probably shouldn't mess with this.
   - `recordName: 'dat'`: name of .well-known file
   - `protocolRegex: /^dat:\/\/([0-9a-f]{64})/i`: RegExp object for custom protocol
@@ -286,6 +323,7 @@ You can use this to identify peers in the network using `peer.remotePublicKey`
 Derives a secret key based on the SDK's master key.
 `namespace` can be used to namespace different applications, and `name` is the name of the key you want.
 This can be used as a seed for generating secure private keys without needing to store an extra key on disk.
+This function is currently only supported in the native backend.
 
 ### `const extension = registerExtension(name, handlers)`
 

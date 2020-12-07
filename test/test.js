@@ -1,30 +1,20 @@
-const SDK = require('./')
 const test = require('tape')
-const RAA = require('random-access-application')
+const createNative = require('./lib/native')
+const createHyperspace = require('./lib/hyperspace')
+const createMixed = require('./lib/mixed')
 
-const isBrowser = process.title === 'browser'
+runAll()
 
-function getNewStorage () {
-  if (isBrowser) {
-    // Get a random number, use it for random-access-application
-    const name = Math.random().toString()
-    return RAA(name)
-  } else {
-    return require('tmp').dirSync({
-      prefix: 'dat-sdk-tests-'
-    }).name
-  }
+async function runAll () {
+  await run(createNative, 'native')
+  await run(createHyperspace, 'hyperspace')
+  await run(createMixed, 'mixed')
 }
 
-run()
-
-async function run () {
-  const { Hyperdrive, Hypercore, resolveName, close } = await SDK({
-    storage: getNewStorage()
-  })
-  const { Hyperdrive: Hyperdrive2, Hypercore: Hypercore2, close: close2 } = await SDK({
-    storage: getNewStorage()
-  })
+async function run (createTestSDKs, name) {
+  const { sdks, cleanup } = await createTestSDKs(2)
+  const { Hyperdrive, Hypercore, resolveName, close } = sdks[0]
+  const { Hyperdrive: Hyperdrive2, Hypercore: Hypercore2, close: close2 } = sdks[1]
 
   const TEST_TIMEOUT = 60 * 1000
 
@@ -33,11 +23,13 @@ async function run () {
 
   test.onFinish(() => {
     close(() => {
-      close2()
+      close2(() => {
+        setTimeout(cleanup, 100)
+      })
     })
   })
 
-  test('Hyperdrive - create drive', (t) => {
+  test(name + ': Hyperdrive - create drive', (t) => {
     t.timeoutAfter(TEST_TIMEOUT)
 
     const drive = Hyperdrive('Example drive 1')
@@ -49,7 +41,7 @@ async function run () {
     })
   })
 
-  test('Hyperdrive - get existing drive', (t) => {
+  test(name + ': Hyperdrive - get existing drive', (t) => {
     const drive = Hyperdrive('Example drive 2')
 
     drive.ready(() => {
@@ -61,7 +53,7 @@ async function run () {
     })
   })
 
-  test('Hyperdrive - load drive over network', (t) => {
+  test(name + ': Hyperdrive - load drive over network', (t) => {
     t.timeoutAfter(TEST_TIMEOUT)
 
     const EXAMPLE_DATA = 'Hello World!'
@@ -84,7 +76,7 @@ async function run () {
     })
   })
 
-  test('Hyperdrive - replicate in-memory drive', (t) => {
+  test(name + ': Hyperdrive - replicate in-memory drive', (t) => {
     t.timeoutAfter(TEST_TIMEOUT)
 
     const EXAMPLE_DATA = 'Hello World!'
@@ -113,7 +105,7 @@ async function run () {
     })
   })
 
-  test('Hyperdrive - new drive created after close', (t) => {
+  test(name + ': Hyperdrive - new drive created after close', (t) => {
     const drive = Hyperdrive('Example drive 5')
 
     drive.ready(() => {
@@ -127,7 +119,7 @@ async function run () {
     })
   })
 
-  test('resolveName - resolve and load archive', (t) => {
+  test(name + ': resolveName - resolve and load archive', (t) => {
     t.timeoutAfter(TEST_TIMEOUT)
 
     resolveName(EXAMPLE_DNS_URL, (err, resolved) => {
@@ -138,7 +130,7 @@ async function run () {
     })
   })
 
-  test('Hypercore - create', (t) => {
+  test(name + ': Hypercore - create', (t) => {
     t.timeoutAfter(TEST_TIMEOUT)
 
     const core = Hypercore('Example hypercore 1')
@@ -150,7 +142,7 @@ async function run () {
     })
   })
 
-  test('Hypercore - load from network', (t) => {
+  test(name + ': Hypercore - load from network', (t) => {
     t.timeoutAfter(TEST_TIMEOUT)
     t.plan(3)
 
@@ -174,7 +166,7 @@ async function run () {
     })
   })
 
-  test('Hypercore - replicate in-memory cores', (t) => {
+  test(name + ': Hypercore - replicate in-memory cores', (t) => {
     t.timeoutAfter(TEST_TIMEOUT)
     t.plan(3)
 
@@ -195,7 +187,7 @@ async function run () {
     })
   })
 
-  test('Hypercore - only close when all handles are closed', (t) => {
+  test(name + ': Hypercore - only close when all handles are closed', (t) => {
     t.timeoutAfter(TEST_TIMEOUT)
     t.plan(5)
 
