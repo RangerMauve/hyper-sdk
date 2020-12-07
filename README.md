@@ -1,15 +1,16 @@
-# sdk
-The official Dat SDK
+# hyper-sdk
 
-[<img src="https://datproject.github.io/design/downloads/dat-logo.png" align="right" width="140">][Dat Project]
+A Software Development Kit for the [hypercore-protocol](https://hypercore-protocol.org/)
+
+Formerly known as "dat-sdk".
 
 ## Why use this?
 
-Dat consists of a bunch of low level building blocks for working with data in distributed applications. Although this modularity makes it easy to mix and match pieces, it adds complexity when it comes to actually building something.
+Hypercore-protocol and it's ecosystem consists of a bunch of low level building blocks for working with data in distributed applications. Although this modularity makes it easy to mix and match pieces, it adds complexity when it comes to actually building something.
 
-The Dat SDK combines the lower level pieces of the Dat ecosystem into high level APIs that you can use across platforms so that you can focus on your application rather than the gritty details of how it works.
+The Hyper SDK combines the lower level pieces of the Hyper stack into high level APIs that you can use across platforms so that you can focus on your application rather than the gritty details of how it works.
 
-The Dat SDK can either work "natively", which means the full storage and networking stack runs directly within the SDK. Alternatively, it supports the experimental [hyperspace](https://github.com/hypercore-protocol/hyperspace) daemon. In this mode, the SDK needs a hyperspace daemon running and will connect to it as a client.
+The Hyper SDK can either work "natively", which means the full storage and networking stack runs directly within the SDK. Alternatively, it supports the experimental [hyperspace](https://github.com/hypercore-protocol/hyperspace) daemon. In this mode, the SDK needs a hyperspace daemon running and will connect to it as a client.
 
 ## Goals
 
@@ -27,11 +28,11 @@ The Dat SDK can either work "natively", which means the full storage and network
 [Node.js](https://nodejs.org/) / [Browserify](http://browserify.org/) workflows:
 
 ```shell
-npm install --save dat-sdk
+npm install --save hyper-sdk
 ```
 
 ```js
-const SDK = require('dat-sdk')
+const SDK = require('hyper-sdk')
 ```
 
 ## Building a bundle for Browsers
@@ -46,11 +47,11 @@ cd sdk
 # Compile the SDK into a single JS file
 npm run build
 
-# Copy `dat-sdk-bundle.js` into your project
+# Copy `hyper-sdk-bundle.js` into your project
 ```
 
 ```html
-<script src="dat-sdk-bundle.js"></script>
+<script src="hyper-sdk-bundle.js"></script>
 <script>
   const SDK = window.datSDK
   // Look at the examples from here
@@ -74,7 +75,7 @@ npm install --save-dev browserify babelify util
 ```
 and the regular dependencies
 ```
-npm install --save dat-sdk@next @geut/sodium-javascript-plus hyperswarm-web
+npm install --save hyper-sdk@latest @geut/sodium-javascript-plus hyperswarm-web
 ```
 
 Add this as the `build` command in your `package.json`. It is important to add the transform (`-t`) with `babelify` to make it work. Babel will use the aliases in the [babel.config.json](https://github.com/datproject/sdk/blob/master/babel.config.json) file to change the code from nodejs to browser.
@@ -114,7 +115,7 @@ Then you can include `./dist/bundle.js` in your HTML page.
 ## API/Examples
 
 ```js
-const SDK = require('dat-sdk')
+const SDK = require('hyper-sdk')
 
 const sdk = await SDK({
   // With this, all drive will disappear after the process exits
@@ -155,11 +156,11 @@ console.log(`Here's your URL: ${url}`)
 await drive.writeFile('/example.txt', 'Hello World!')
 console.log('Written example file!')
 
-// This example is currently broken because Beaker's website isn't on Dat 2 yet
-const key = await resolveName('dat://beakerbrowser.com')
+const key = await resolveName('hyper://blog.mauve.moe')
 const drive = Hyperdrive(key)
 await drive.download()
-// Pure all the data
+
+// Delete all the data
 await drive.destroyStorage()
 
 const SOME_URL = 'dat://0a9e202b8055721bd2bc93b3c9bbc03efdbda9cfee91f01a123fdeaadeba303e/'
@@ -216,7 +217,7 @@ discoveryCore.on('peer-add', (peer) => {
 
 const hypertrie = require('hypertrie')
 
-// Pass in hypercores from the SDK into other dat data structures
+// Pass in hypercores from the SDK into other data structures
 // Check out what you can do with hypertrie from there:
 // https://github.com/mafintosh/hypertrie
 const trie = hypertrie(null, {
@@ -246,13 +247,13 @@ To run the tests in a browser, first run `npm run build-test` to build the test 
 
 The API supports both promises and callbacks. Everywhere where you see `await`, you can instead pass a node-style callback.
 
-### const SDK = require('dat-sdk')
+### const SDK = require('hyper-sdk')
 
 Import the SDK contructor using the *native* backend. This means that the full storage and networking stack runs right within the current process. Works both in Node.js and in web browsers.
 
 When running in a web browser, it needs a [hyperswarm-web](https://github.com/RangerMauve/hyperswarm-web) proxy for peer to peer connectivity.
 
-### const SDK = require('dat-sdk/hyperspace')
+### const SDK = require('hyper-sdk/hyperspace')
 
 Import the SDK contructor using the experimental *hyperspace* backend. Here, the SDK needs a running hyperspace server.
 
@@ -264,7 +265,7 @@ When running in NodeJS, this will attempt to connect to a hyperspace server runn
 
 ### `const {Hypercore, Hyperdrive, resolveName, keyPair, deriveSecret, registerExtension, close} = await SDK(opts?)`
 
-Creates an instance of the Dat SDK based on the options.
+Creates an instance of the Hyper SDK based on the options.
 
 Options for the *native* backend:
 
@@ -309,10 +310,10 @@ This closes all resources used by the SDK so you can safely end your process. `c
 
 ### `const key = await resolveName(url)`
 
-Resolve a DNS name to a Dat key.
+Resolve a DNS name to a Hypercore key.
 
-  - `url` is a Dat URL like `dat://dat.foundation`
-  - `key` will be the Dat key that you can pass to `hyperdrive`
+  - `url` is a `hyper://` URL like `hyper://blog.mauve.moe`
+  - `key` will be the key that you can pass to `Hyperdrive`
 
 ### `const {publicKey, secretKey} = keyPair`
 
@@ -339,9 +340,9 @@ You can also broadcast out messages to all peers with `extension.broadcast(messa
 
 ### `const drive = Hyperdrive(keyOrName, opts)`
 
-This initializes a Hyperdrive (aka a Dat drive), the SDK will begin finding peers for it and will de-duplicate calls to initializing the same drive more than once.
+This initializes a Hyperdrive, the SDK will begin finding peers for it and will de-duplicate calls to initializing the same drive more than once.
 
-- `keyOrName`: This **must** be provided. It's either a Dat URL / key or a string identifying the name. If you want to have a writable drive, you can use the name to generate one and use the name later to get the same drive back without having to save the key somewhere.
+- `keyOrName`: This **must** be provided. It's either a `hyper://` URL / key or a string identifying the name. If you want to have a writable drive, you can use the name to generate one and use the name later to get the same drive back without having to save the key somewhere.
 - `opts`: These are the options for configuring the hyperdrive.
   - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
   - `secretKey`: A secret key for granting write access. This can be useful when restoring backups.
@@ -610,7 +611,7 @@ The drive should no longer be used after calling this.
 
 Initializes a Hypercore (aka Feed) and begins replicating it.
 
-- `keyOrName`: This **must** be provided. It's either a Dat URL / key or a string identifying the name of the feed. If you want to have a writable feed, you can use the name to generate one and use the name later to get the same feed back without having to save the key somewhere.
+- `keyOrName`: This **must** be provided. It's either a `hyper://` URL / key or a string identifying the name of the feed. If you want to have a writable feed, you can use the name to generate one and use the name later to get the same feed back without having to save the key somewhere.
 - `opts`: The options for configuring this feed
   - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
   - `valueEncoding: 'json' | 'utf-8' | 'binary'`: The encoding to use for the data stored in the hypercore. Use JSON to store / retrieve objects.
@@ -931,7 +932,7 @@ https://github.com/webrtcHacks/adapter
 E.g. In the browser code:
 
   `<script src="lib/adaptor.js"></script>
-  <script src="lib/dat-sdk-bundle.js"></script>`
+  <script src="lib/hyper-sdk-bundle.js"></script>`
 
 ---
 

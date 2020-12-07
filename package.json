@@ -1,11 +1,11 @@
 {
-  "name": "dat-sdk",
+  "name": "hyper-sdk",
   "version": "2.8.1",
-  "description": "The official Dat SDK",
+  "description": "A Software Development Kit for the Hypercore-Protocol",
   "main": "index.js",
   "scripts": {
     "test": "node test/test.js",
-    "build": "cross-env BABEL_DISABLE_CACHE=1 browserify -t [ babelify --global ] --standalone datSDK index.js > dat-sdk-bundle.js",
+    "build": "cross-env BABEL_DISABLE_CACHE=1 browserify -t [ babelify --global ] --standalone hyperSDK index.js > hyper-sdk-bundle.js",
     "build-test": "cross-env BABEL_DISABLE_CACHE=1 browserify -t [ babelify --global ] -d test/test.js > test-bundle.js",
     "update-deps": "npm install --save hyperswarm@latest @corestore/networker@latest hyperdrive@latest corestore@latest hypercore@latest hypercore-protocol@latest hypercore-crypto@latest @geut/hyperdrive-promise@latest @geut/hypercore-promise@latest",
     "test-proxy": "run-p proxy:hyperspace proxy:hyperswarm",
@@ -21,6 +21,7 @@
     "sdk",
     "hyperdrive",
     "hypercore",
+    "hypercore-protocol",
     "p2p"
   ],
   "author": "datproject",

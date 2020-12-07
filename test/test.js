@@ -61,9 +61,9 @@ async function run (createTestSDKs, name) {
     const drive1 = Hyperdrive2('Example drive 3')
 
     drive1.writeFile('/index.html', EXAMPLE_DATA, (err) => {
-      t.error(err, 'wrote to initial archive')
+      t.error(err, 'wrote to initial drive')
       const drive = Hyperdrive(drive1.key)
-      t.deepEqual(drive1.key, drive.key, 'loaded correct archive')
+      t.deepEqual(drive1.key, drive.key, 'loaded correct drive')
       drive.once('peer-open', () => {
         t.pass('Got peer for drive')
         drive.readFile('/index.html', 'utf8', (err, data) => {
@@ -90,7 +90,7 @@ async function run (createTestSDKs, name) {
     })
   })
 
-  test(name + ': resolveName - resolve and load archive', (t) => {
+  test(name + ': resolveName - resolve and load drive', (t) => {
     t.timeoutAfter(TEST_TIMEOUT)
 
     resolveName(EXAMPLE_DNS_URL, (err, resolved) => {
