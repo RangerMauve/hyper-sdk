@@ -116,7 +116,17 @@ Then you can include `./dist/bundle.js` in your HTML page.
 ```js
 const SDK = require('dat-sdk')
 
-const sdk = await SDK();
+const sdk = await SDK({
+  // With this, all drive will disappear after the process exits
+  // This is here so that running the example doesn't clog up your history
+  persist: false,
+  // storage can be set to an instance of `random-access-*`
+  // const RAI = require('random-access-idb')
+  // otherwise it defaults to `random-access-web` in the browser
+  // and `random-access-file` in node
+  storage: null  //storage: RAI
+});
+
 const {
 	Hypercore,
 	Hyperdrive,
@@ -125,47 +135,38 @@ const {
 } = sdk
 
 // Create a new Hyperdrive.
-// If you want to create a new archive, pass in a name for it
+// If you want to create a new drive, pass in a name for it
 // This will be used to derive a secret key
 // Every time you open a drive with that name it'll derive the same key
 // This uses a master key that's generated once per device
 // That means the same name will yield a different key on a different machine
-const archive = Hyperdrive('My archive name', {
-  // This archive will disappear after the process exits
-  // This is here so that running the example doesn't clog up your history
-  persist: false,
-  // storage can be set to an instance of `random-access-*`
-  // const RAI = require('random-access-idb')
-  // otherwise it defaults to `random-access-web` in the browser
-  // and `random-access-file` in node
-  storage: null  //storage: RAI
-})
+const drive = Hyperdrive('My drive name')
 
-// You should wait for the archive to be totally initialized
-await archive.ready()
+// You should wait for the drive to be totally initialized
+await drive.ready()
 
-const url = `dat://${archive.key.toString('hex')}`
+const url = `hyper://${drive.key.toString('hex')}`
 
 // TODO: Save this for later!
 console.log(`Here's your URL: ${url}`)
 
 // Check out the hyperdrive docs for what you can do with it
 // https://www.npmjs.com/package/hyperdrive#api
-await archive.writeFile('/example.txt', 'Hello World!')
+await drive.writeFile('/example.txt', 'Hello World!')
 console.log('Written example file!')
 
 // This example is currently broken because Beaker's website isn't on Dat 2 yet
 const key = await resolveName('dat://beakerbrowser.com')
-const archive = Hyperdrive(key)
-await archive.download()
+const drive = Hyperdrive(key)
+await drive.download()
 // Pure all the data
-await archive.destroyStorage()
+await drive.destroyStorage()
 
 const SOME_URL = 'dat://0a9e202b8055721bd2bc93b3c9bbc03efdbda9cfee91f01a123fdeaadeba303e/'
 
-const someArchive = Hyperdrive(SOME_URL)
+const somedrive = Hyperdrive(SOME_URL)
 
-console.log(await someArchive.readdir('/'))
+console.log(await somedrive.readdir('/'))
 
 // Create a hypercore
 // Check out the hypercore docs for what you can do with it
@@ -336,64 +337,63 @@ Listens on extension messages of type `name` on the feeds replication channels.
 You can respond to messages with `extension.send(message, peer)`.
 You can also broadcast out messages to all peers with `extension.broadcast(message)`
 
-### `const archive = Hyperdrive(keyOrName, opts)`
+### `const drive = Hyperdrive(keyOrName, opts)`
 
-This initializes a Hyperdrive (aka a Dat archive), the SDK will begin finding peers for it and will de-duplicate calls to initializing the same archive more than once.
+This initializes a Hyperdrive (aka a Dat drive), the SDK will begin finding peers for it and will de-duplicate calls to initializing the same drive more than once.
 
-- `keyOrName`: This **must** be provided. It's either a Dat URL / key or a string identifying the name. If you want to have a writable archive, you can use the name to generate one and use the name later to get the same archive back without having to save the key somewhere.
+- `keyOrName`: This **must** be provided. It's either a Dat URL / key or a string identifying the name. If you want to have a writable drive, you can use the name to generate one and use the name later to get the same drive back without having to save the key somewhere.
 - `opts`: These are the options for configuring the hyperdrive.
   - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
-  - `persist: true`: Whether the data should be persisted to storage. Set to false to create in-memory archives
   - `secretKey`: A secret key for granting write access. This can be useful when restoring backups.
-	- `discoveryKey`: Optionally specify which discovery key you'd like to use for finding peers for this archive.
-	- `lookup: true`: Specify whether you wish to lookup peers for this archive. Set `false` along with `announce` to avoid advertising
-	- `announce: true`: Specify whether you wish to advertise yourself as having the archive.
+	- `discoveryKey`: Optionally specify which discovery key you'd like to use for finding peers for this drive.
+	- `lookup: true`: Specify whether you wish to lookup peers for this drive. Set `false` along with `announce` to avoid advertising
+	- `announce: true`: Specify whether you wish to advertise yourself as having the drive.
 
 The rest of the Hyperdrive docs were taken from the [Hyperdrive README](https://github.com/mafintosh/hyperdrive/blob/v9/README.md). Note that we're wrapping over the APIs with [Hyperdrive-Promise](https://github.com/geut/hyperdrive-promise) so any callback methods can be `await`ed instead.
 
-#### `archive.version`
+#### `drive.version`
 
-Get the current version of the archive (incrementing number).
+Get the current version of the drive (incrementing number).
 
-#### `archive.key`
+#### `drive.key`
 
-The public key identifying the archive.
+The public key identifying the drive.
 
-#### `archive.discoveryKey`
+#### `drive.discoveryKey`
 
-A key derived from the public key that can be used to discovery other peers sharing this archive.
+A key derived from the public key that can be used to discovery other peers sharing this drive.
 
-#### `archive.writable`
+#### `drive.writable`
 
-A boolean indicating whether the archive is writable.
+A boolean indicating whether the drive is writable.
 
-#### `archive.on('ready')`
+#### `drive.on('ready')`
 
-Emitted when the archive is fully ready and all properties has been populated.
+Emitted when the drive is fully ready and all properties has been populated.
 
-#### `archive.on('update')`
+#### `drive.on('update')`
 
-Emitted when the archive has got a new change.
+Emitted when the drive has got a new change.
 
-#### `archive.on('error', err)`
+#### `drive.on('error', err)`
 
 Emitted when a critical error during load happened.
 
-#### `archive.on('close')`
+#### `drive.on('close')`
 
-Emitted when the archive has been closed
+Emitted when the drive has been closed
 
-#### `archive.on('peer-add', peer)`
+#### `drive.on('peer-add', peer)`
 
-Emitted when a new peer has started replicating wiht the archive.
+Emitted when a new peer has started replicating wiht the drive.
 
-#### `archive.on('peer-remove', peer)`
+#### `drive.on('peer-remove', peer)`
 
-Emitted when a peer has stopped replicating wit the archive.
+Emitted when a peer has stopped replicating wit the drive.
 
-#### `var oldDrive = archive.checkout(version, [opts])`
+#### `var oldDrive = drive.checkout(version, [opts])`
 
-Checkout a readonly copy of the archive at an old version. Options are used to configure the `oldDrive`:
+Checkout a readonly copy of the drive at an old version. Options are used to configure the `oldDrive`:
 
 ```js
 {
@@ -403,30 +403,30 @@ Checkout a readonly copy of the archive at an old version. Options are used to c
 }
 ```
 
-#### `await archive.download([path])`
+#### `await drive.download([path])`
 
 Download all files in path of current version.
 If no path is specified this will download all files.
 
-You can use this with `.checkout(version)` to download a specific version of the archive.
+You can use this with `.checkout(version)` to download a specific version of the drive.
 
 ``` js
-archive.checkout(version).download()
+drive.checkout(version).download()
 ```
 
-#### `await archive.clear(path)`
+#### `await drive.clear(path)`
 
 Clear the storage of all files in the path.
 This is the opposite of the `download` API.
 Note that this doesn't delete the files from history, just clears the data locally.
 
-You can use this with `.checkout(version)` to clear a specific version of the archive.
+You can use this with `.checkout(version)` to clear a specific version of the drive.
 
-#### `var stream = archive.history([options])`
+#### `var stream = drive.history([options])`
 
-Get a stream of all changes and their versions from this archive.
+Get a stream of all changes and their versions from this drive.
 
-#### `var stream = archive.createReadStream(name, [options])`
+#### `var stream = drive.createReadStream(name, [options])`
 
 Read a file out as a stream. Similar to fs.createReadStream.
 
@@ -440,7 +440,7 @@ Options include:
 }
 ```
 
-#### `const data = await archive.readFile(name, [options])`
+#### `const data = await drive.readFile(name, [options])`
 
 Read an entire file into memory. Similar to fs.readFile.
 
@@ -457,9 +457,9 @@ or a string can be passed as options to simply set the encoding - similar to fs.
 
 If `cached` is set to `true`, this function returns results only if they have already been downloaded.
 
-#### `var stream = archive.createDiffStream(version, [options])`
+#### `var stream = drive.createDiffStream(version, [options])`
 
-Diff this archive with another version. `version` can both be a version number of a checkout instance of the archive. The `data` objects looks like this
+Diff this drive with another version. `version` can both be a version number of a checkout instance of the drive. The `data` objects looks like this
 
 ``` js
 {
@@ -471,28 +471,28 @@ Diff this archive with another version. `version` can both be a version number o
 }
 ```
 
-#### `var stream = archive.createWriteStream(name, [options])`
+#### `var stream = drive.createWriteStream(name, [options])`
 
 Write a file as a stream. Similar to fs.createWriteStream.
 If `options.cached` is set to `true`, this function returns results only if they have already been downloaded.
 
-#### `await archive.writeFile(name, buffer, [options])`
+#### `await drive.writeFile(name, buffer, [options])`
 
 Write a file from a single buffer. Similar to fs.writeFile.
 
-#### `await archive.unlink(name)`
+#### `await drive.unlink(name)`
 
 Unlinks (deletes) a file. Similar to fs.unlink.
 
-#### `await archive.mkdir(name, [options])`
+#### `await drive.mkdir(name, [options])`
 
 Explictly create an directory. Similar to fs.mkdir
 
-#### `await archive.rmdir(name)`
+#### `await drive.rmdir(name)`
 
 Delete an empty directory. Similar to fs.rmdir.
 
-#### `const names = await archive.readdir(name, [options])`
+#### `const names = await drive.readdir(name, [options])`
 
 Lists a directory. Similar to fs.readdir.
 
@@ -504,9 +504,9 @@ Options include:
 }
 ```
 
-If `cached` is set to `true`, this function returns results from the local version of the archive’s append-tree. Default behavior is to fetch the latest remote version of the archive before returning list of directories.
+If `cached` is set to `true`, this function returns results from the local version of the drive’s append-tree. Default behavior is to fetch the latest remote version of the drive before returning list of directories.
 
-#### `const stat = await archive.stat(name, [options])`
+#### `const stat = await drive.stat(name, [options])`
 
 Stat an entry. Similar to fs.stat. Sample output:
 
@@ -532,7 +532,7 @@ Stat {
 The output object includes methods similar to fs.stat:
 
 ``` js
-var stat = archive.stat('/hello.txt')
+var stat = drive.stat('/hello.txt')
 stat.isDirectory()
 stat.isFile()
 ```
@@ -549,7 +549,7 @@ If `cached` is set to `true`, this function returns results only if they have al
 
 If `wait` is set to `true`, this function will wait for data to be downloaded. If false, will return an error.
 
-#### `await archive.lstat(name, [options])`
+#### `await drive.lstat(name, [options])`
 
 Stat an entry but do not follow symlinks. Similar to fs.lstat.
 
@@ -565,7 +565,7 @@ If `cached` is set to `true`, this function returns results only if they have al
 
 If `wait` is set to `true`, this function will wait for data to be downloaded. If false, will return an error.
 
-#### `await archive.access(name, [options])`
+#### `await drive.access(name, [options])`
 
 Similar to fs.access.
 
@@ -581,30 +581,30 @@ If `cached` is set to `true`, this function returns results only if they have al
 
 If `wait` is set to `true`, this function will wait for data to be downloaded. If false, will return an error.
 
-#### `const fd = await archive.open(name, flags, [mode])`
+#### `const fd = await drive.open(name, flags, [mode])`
 
 Open a file and get a file descriptor back. Similar to fs.open.
 
 Note that currently only read mode is supported in this API.
 
-#### `await archive.read(fd, buf, offset, len, position)`
+#### `await drive.read(fd, buf, offset, len, position)`
 
 Read from a file descriptor into a buffer. Similar to fs.read.
 
-#### `await archive.close(fd)`
+#### `await drive.close(fd)`
 
 Close a file. Similar to fs.close.
 
-#### `await archive.close()`
+#### `await drive.close()`
 
-Closes all open resources used by the archive.
-The archive should no longer be used after calling this.
+Closes all open resources used by the drive.
+The drive should no longer be used after calling this.
 If you load this hyperdrive's key more than once at once, `close()` will be a noop until all handles invoke it.
 
-#### `await archive.destroyStorage()`
+#### `await drive.destroyStorage()`
 
-Closes all resources used by the archive, and destroys its data from storage.
-The archive should no longer be used after calling this.
+Closes all resources used by the drive, and destroys its data from storage.
+The drive should no longer be used after calling this.
 
 ### `const feed = Hypercore(keyOrName, opts)`
 
@@ -613,7 +613,6 @@ Initializes a Hypercore (aka Feed) and begins replicating it.
 - `keyOrName`: This **must** be provided. It's either a Dat URL / key or a string identifying the name of the feed. If you want to have a writable feed, you can use the name to generate one and use the name later to get the same feed back without having to save the key somewhere.
 - `opts`: The options for configuring this feed
   - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
-  - `persist: true`: Whether the data should be persisted to storage. Set to false to create in-memory feeds
   - `valueEncoding: 'json' | 'utf-8' | 'binary'`: The encoding to use for the data stored in the hypercore. Use JSON to store / retrieve objects.
   - `secretKey`: The secret key to use for the feed. Useful for restoring from backups.
 	- `discoveryKey`: Optionally specify which discovery key you'd like to use for finding peers for this feed.

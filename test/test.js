@@ -76,35 +76,6 @@ async function run (createTestSDKs, name) {
     })
   })
 
-  test(name + ': Hyperdrive - replicate in-memory drive', (t) => {
-    t.timeoutAfter(TEST_TIMEOUT)
-
-    const EXAMPLE_DATA = 'Hello World!'
-
-    const drive1 = Hyperdrive2('Example drive 4', { persist: false })
-
-    drive1.writeFile('/index.html', EXAMPLE_DATA, (err) => {
-      t.error(err, 'wrote to initial archive')
-      const drive = Hyperdrive(drive1.key, { persist: false })
-      t.deepEqual(drive1.key, drive.key, 'loaded correct archive')
-
-      drive.ready(() => {
-        if (drive.peers.length) testFile()
-        else drive.once('peer-open', testFile)
-      })
-
-      function testFile () {
-        t.pass('got peer')
-        drive.readFile('/index.html', 'utf8', (err, data) => {
-          t.error(err, 'loaded file without error')
-          t.equal(data, EXAMPLE_DATA)
-
-          t.end()
-        })
-      }
-    })
-  })
-
   test(name + ': Hyperdrive - new drive created after close', (t) => {
     const drive = Hyperdrive('Example drive 5')
 
@@ -160,27 +131,6 @@ async function run (createTestSDKs, name) {
           t.error(err, 'no error reading from core')
           t.ok(data, 'got data from replicated core')
 
-          t.end()
-        })
-      })
-    })
-  })
-
-  test(name + ': Hypercore - replicate in-memory cores', (t) => {
-    t.timeoutAfter(TEST_TIMEOUT)
-    t.plan(3)
-
-    const core1 = Hypercore('Example hypercore 3', { persist: false })
-
-    core1.append('Hello World', () => {
-      const core2 = Hypercore2(core1.key, { persist: false })
-
-      t.deepEqual(core2.key, core1.key, 'loaded key correctly')
-
-      core2.once('peer-open', () => {
-        core2.get(0, (err, data) => {
-          t.error(err, 'no error reading from core')
-          t.ok(data, 'got data from replicated core')
           t.end()
         })
       })
