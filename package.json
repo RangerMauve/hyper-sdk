@@ -49,7 +49,9 @@
     "README.md",
     "index.js",
     "dns-web.js",
-    "babel.config.json"
+    "babel.config.json",
+    "native.js",
+    "hyperspace.js"
   ],
   "dependencies": {
     "@corestore/networker": "^1.0.4",
