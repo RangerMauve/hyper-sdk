@@ -68,7 +68,8 @@
     "hyperswarm": "^2.15.2",
     "hyperswarm-web": "^2.1.1",
     "random-access-application": "^1.0.0",
-    "random-access-memory": "^3.1.1"
+    "random-access-memory": "^3.1.1",
+    "sodium-universal": "3.0.2"
   },
   "devDependencies": {
     "@babel/core": "^7.9.0",

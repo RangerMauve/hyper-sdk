@@ -44,6 +44,9 @@ git clone git@github.com:datproject/sdk.git
 
 cd sdk
 
+# Install dependencies
+npm install
+
 # Compile the SDK into a single JS file
 npm run build
 
