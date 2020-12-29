@@ -51,6 +51,7 @@
     "dns-web.js",
     "babel.config.json",
     "native.js",
+    "sdk.js",
     "hyperspace.js"
   ],
   "dependencies": {
