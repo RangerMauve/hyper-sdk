@@ -24,6 +24,7 @@ async function nativeBackend (opts) {
     corestore,
     applicationName,
     persist,
+    keyPair,
     swarmOpts,
     corestoreOpts
   } = opts
@@ -48,10 +49,12 @@ async function nativeBackend (opts) {
   // The corestore needs to be opened before creating the swarm.
   await corestore.ready()
 
-  // I think this is used to create a persisted identity?
-  // Needs to be created before the swarm so that it can be passed in
-  const noiseSeed = await deriveSecret(applicationName, 'replication-keypair')
-  const keyPair = HypercoreProtocol.keyPair(noiseSeed)
+  if (!keyPair) {
+    // I think this is used to create a persisted identity?
+    // Needs to be created before the swarm so that it can be passed in
+    const noiseSeed = await deriveSecret(applicationName, 'replication-keypair')
+    keyPair = HypercoreProtocol.keyPair(noiseSeed)
+  }
 
   const swarm = new SwarmNetworker(corestore, Object.assign({ keyPair }, DEFAULT_SWARM_OPTS, swarmOpts))
 
