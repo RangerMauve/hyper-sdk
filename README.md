@@ -53,7 +53,7 @@ npm run build
 ```html
 <script src="hyper-sdk-bundle.js"></script>
 <script>
-  const SDK = window.datSDK
+  const SDK = window.hyperSDK
   // Look at the examples from here
 </script>
 ```
