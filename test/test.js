@@ -24,7 +24,7 @@ async function run (createTestSDKs, name) {
   test.onFinish(() => {
     close(() => {
       close2(() => {
-        setTimeout(cleanup, 100)
+        process.nextTick(cleanup)
       })
     })
   })
