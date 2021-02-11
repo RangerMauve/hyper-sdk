@@ -82,16 +82,22 @@ async function SDK (opts = {}) {
   }
 
   function close (cb) {
+    let pending = 1
     for (const drive of drives.values()) {
-      drive.close()
+      ++pending
+      drive.close(onclose)
     }
-
     for (const core of cores.values()) {
-      core.close()
+      ++pending
+      core.close(onclose)
     }
+    onclose()
 
-    if (handlers.close) handlers.close(cb)
-    else cb()
+    function onclose () {
+      if (--pending !== 0) return
+      if (handlers.close) handlers.close(cb)
+      else cb()
+    }
   }
 
   function resolveName (url, cb) {
