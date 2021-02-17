@@ -1,7 +1,5 @@
 // TODO: Figure out Hyperspace options
 declare module "hyper-sdk" {
-  export type SDKOptions = WebSDKOptions | NativeSDKOptions
-
   // TODO: Support abstract-encoding
   export type Encoding = 'binary' | 'json' | 'utf-8'
 
@@ -11,21 +9,29 @@ declare module "hyper-sdk" {
   // TODO: Maybe we should Type random-access-storage?
   export type Storage = any
 
-  export interface BaseSDKOptions {
+  export interface SDKOptions {
+    applicationName?: string;
+    persist?: boolean;
+    storage?: Storage
     corestore?: Corestore;
     corestoreOpts?: CorestoreOpts;
     coreOpts?: HypercoreOptions;
     driveOpts?: HyperdriveOptions;
-    storage?: Storage
     dnsOpts?: DNSOptions;
+    swarmOpts?: HyperswarmOptions | HyperswarmWebOptions
   }
 
-  export interface NativeSDKOptions extends BaseSDKOptions {
-
+  export interface HyperswarmOptions {
+    maxPeers?: number
+    ephemeral?: boolean
+    bootstrap?: string[]
+    preferredPort?: number
   }
 
-  export interface WebSDKOptions extends BaseSDKOptions{
-
+  export interface HyperswarmWebOptions {
+    maxPeers?: number
+    webrtcBootstrap?: string[]
+    wsProxy?: string
   }
 
   export interface DNSOptions {
