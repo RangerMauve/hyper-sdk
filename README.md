@@ -292,9 +292,10 @@ Options for all backends:
 
 - `opts.corestore`: An optional [Corestore](https://github.com/andrewosh/corestore) instance for using as hypercore storage.
 - `opts.corestoreOpts`: Options to pass into Corestore when it's initialized.
+  - `masterKey`: Optional 32 byte Buffer with the master key that should be used to derive sercret keys for hypercores. Useful to restore from backups
+  - `ack`: Whether you want there to be a `peer-ack` event emitted when data has been uploaded to a peer.
 - `opts.coreOpts`: This lets you configure the behavior of [Hypercore](https://github.com/mafintosh/hypercore) instances
   - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
-  - `extensions`: The set of extension message types to use with this feed when replicating.
   - `valueEncoding: 'json' | 'utf-8' | 'binary'`: The encoding to use for the data stored in the hypercore. Use JSON to store / retrieve objects.
 - `opts.driveOpts`: This lets you configure the behavior of [Hyperdrive](https://github.com/mafintosh/hyperdrive) instances
   - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
