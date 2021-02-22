@@ -127,6 +127,12 @@ declare module "hyper-sdk" {
     peers: NetworkStat[]
   }
 
+  export interface Have {
+    start?: number
+    length? : number
+    bitfield?: Buffer
+  }
+
   export interface Hypercore<E=Buffer> {
     readonly writable: boolean
     readonly readable: boolean
@@ -140,6 +146,7 @@ declare module "hyper-sdk" {
     on(event: 'peer-add', listener: (peer: Peer) => any)
     on(event: 'peer-remove', listener: (peer: Peer) => any)
     on(event: 'peer-open', listener: (peer: Peer) => any)
+    on(event: 'peer-ack', listener: (peer: Peer, have: Have) => any)
     on(event: 'ready', listener: () => any)
     on(event: 'error', listener: (error: Error) => any)
     on(event: 'upload', listener: (index, data: E) => any)
@@ -149,6 +156,7 @@ declare module "hyper-sdk" {
     once(event: 'peer-add', listener: (peer: Peer) => any)
     once(event: 'peer-remove', listener: (peer: Peer) => any)
     once(event: 'peer-open', listener: (peer: Peer) => any)
+    once(event: 'peer-ack', listener: (peer: Peer, have: Have) => any)
     once(event: 'ready', listener: () => any)
     once(event: 'error', listener: (error: Error) => any)
     once(event: 'upload', listener: (index, data: E) => any)

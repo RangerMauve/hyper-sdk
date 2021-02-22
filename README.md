@@ -919,10 +919,25 @@ Emitted when the feed has been fully closed
 
 Emitted when a new peer has started replicating with the feed.
 
+Extension messages and metadate about the remote peer isn't ready yet.
+
+#### `feed.on('peer-open', peer)`
+
+Emitted when a new peer has fully connected and shared it's metadata.
+
+You should probably prefer this over peer-add.
+
 #### `feed.on('peer-remove', peer)`
 
 Emitted when a peer has stopped replicating with the feed.
 
+#### `feed.on('peer-ack', have)`
+
+Emitted when a peer has acknowledged that it loaded some of your data.
+
+Specify `ack: true` in the `corestoreOpts` to enable this.
+
+You can get the `have.start` and `have.end` fields to see which portions the peer loaded. Alternately `have.bitfield` will contain the bitfield of the blocks that got loaded.
 
 ## Potential WebRTC performance enhancement
 
