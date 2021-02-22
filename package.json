@@ -1,6 +1,6 @@
 {
   "name": "hyper-sdk",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "description": "A Software Development Kit for the Hypercore-Protocol",
   "main": "index.js",
   "scripts": {
