@@ -146,6 +146,15 @@ declare module "hyper-sdk" {
     on(event: 'append', listener: () => any)
     on(event: 'close', listener: () => any)
 
+    once(event: 'peer-add', listener: (peer: Peer) => any)
+    once(event: 'peer-remove', listener: (peer: Peer) => any)
+    once(event: 'peer-open', listener: (peer: Peer) => any)
+    once(event: 'ready', listener: () => any)
+    once(event: 'error', listener: (error: Error) => any)
+    once(event: 'upload', listener: (index, data: E) => any)
+    once(event: 'append', listener: () => any)
+    once(event: 'close', listener: () => any)
+
     ready() : Promise<void>
 
     registerExtension<M=Buffer>(name: string, handlers: ExtensionHandlers<M>) : Extension<M>
@@ -259,6 +268,14 @@ declare module "hyper-sdk" {
     on(event: 'peer-remove', listener: (peer: Peer) => any);
     on(event: 'close', listener: () => any);
 
+    once(event: 'ready', listener: () => any);
+    once(event: 'error', listener: (error: Error) => any);
+    once(event: 'update', listener: () => any);
+    once(event: 'peer-add', listener: (peer: Peer) => any);
+    once(event: 'peer-open', listener: (peer: Peer) => any);
+    once(event: 'peer-remove', listener: (peer: Peer) => any);
+    once(event: 'close', listener: () => any);
+
     registerExtension<M=Buffer>(name: string, handlers: ExtensionHandlers<M>) : Extension<M>
 
     ready() : Promise<void>
@@ -313,7 +330,7 @@ declare module "hyper-sdk" {
     readonly keyPair: KeyPair
 
     Hyperdrive(keyOrName: string, opts? : HyperdriveOptions) : Hyperdrive;
-    Hypercore<E=Buffer>(keyOrName: string, HypercoreOptions) : Hypercore<E>;
+    Hypercore<E=Buffer>(keyOrName: string, opts? : HypercoreOptions) : Hypercore<E>;
 
     resolveName(url: string) : Promise<string>
     deriveSecret(namespace: string, name: string) : Promise<Buffer>
