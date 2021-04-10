@@ -25,5 +25,5 @@ jobs:
     - run: npm run build
     - run: npm test
     - uses: actions/upload-artifact@v2
-        with:
-          path: hyper-sdk-bundle.js
+      with:
+        path: hyper-sdk-bundle.js
