@@ -82,21 +82,24 @@ async function SDK (opts = {}) {
   }
 
   function close (cb) {
-    let pending = 1
-    for (const drive of drives.values()) {
-      ++pending
-      drive.close(onclose)
+    const process = _close()
+    if (!cb) {
+      return process
     }
-    for (const core of cores.values()) {
-      ++pending
-      core.close(onclose)
-    }
-    onclose()
+    process.then(() => cb(), cb)
+  }
 
-    function onclose () {
-      if (--pending !== 0) return
-      if (handlers.close) handlers.close(cb)
-      else cb()
+  async function _close () {
+    await Promise.all(
+      []
+        .concat(Array.from(drives.values()).map(drive => drive.close()))
+        .concat(Array.from(cores.values()).map(core => core.close()))
+    )
+    if (handlers.close) {
+      await new Promise(
+        (resolve, reject) =>
+          handlers.close(error => { error ? reject(error): resolve() })
+      )
     }
   }
 

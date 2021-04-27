@@ -1,7 +1,6 @@
 const SDK = require('../..')
 const RAA = require('random-access-application')
-
-const isBrowser = process.title === 'browser'
+const { isBrowser } = require('./env')
 
 module.exports = async function createNative (n) {
   let swarmOpts, localDht
@@ -12,7 +11,7 @@ module.exports = async function createNative (n) {
   const sdks = []
   while (--n >= 0) {
     const sdk = await SDK({
-      storage: getNewStorage(),
+      storage: await getNewStorage(),
       swarmOpts
     })
     sdks.push(sdk)
@@ -21,19 +20,23 @@ module.exports = async function createNative (n) {
   return { sdks, cleanup }
 
   function cleanup () {
+    console.log('# [test/native] cleanup start')
     if (localDht) localDht.cleanup()
+    console.log('# [test/native] cleanup end')
   }
 }
 
-function getNewStorage () {
+async function getNewStorage () {
   if (isBrowser) {
     // Get a random number, use it for random-access-application
     const name = Math.random().toString()
     return RAA(name)
   } else {
-    return require('tmp').dirSync({
+    const tmp = require('tmp-promise')
+    const dir = await tmp.dir({
       prefix: 'dat-sdk-tests-'
-    }).name
+    })
+    return dir.path
   }
 }
 
@@ -41,6 +44,7 @@ async function createDHT () {
   const bootstrapper = require('@hyperswarm/dht')({
     bootstrap: false
   })
+  const closed = new Promise(resolve => bootstrapper.once('closed', resolve))
   bootstrapper.listen()
   await new Promise(resolve => {
     return bootstrapper.once('listening', resolve)
@@ -49,7 +53,8 @@ async function createDHT () {
   const bootstrapOpt = [`localhost:${bootstrapPort}}`]
   return { bootstrap: bootstrapOpt, cleanup }
 
-  function cleanup () {
+  async function cleanup () {
     bootstrapper.destroy()
+    await closed
   }
 }

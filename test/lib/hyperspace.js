@@ -1,6 +1,6 @@
 const SDK = require('../../hyperspace')
+const { isBrowser } = require('./env')
 
-const isBrowser = process.title === 'browser'
 const HYPERSPACE_TEST_PORT = 9000
 
 module.exports = async function createHyperspace (n) {
@@ -29,9 +29,9 @@ module.exports = async function createHyperspace (n) {
 
   return { sdks, cleanup }
 
-  function cleanup () {
-    for (const cleanup of cleanups) {
-      cleanup()
-    }
+  async function cleanup () {
+    console.log('# [test/hyperspace] cleanup start')
+    await Promise.all(cleanups.map(cleanup => cleanup()))
+    console.log('# [test/hyperspace] cleanup end')
   }
 }
