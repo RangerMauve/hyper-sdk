@@ -7,7 +7,7 @@ const webnet = require('webnet')
 const http = require('http')
 const tapeRun = require('tape-run')
 const path = require('path')
-const { createWriteStream, createReadStream } = require('node:fs')
+const { createWriteStream, createReadStream } = require('fs')
 const { randomBytes } = require('hypercore-crypto')
 
 main({
