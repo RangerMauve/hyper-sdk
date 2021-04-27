@@ -11,8 +11,13 @@ module.exports = async function createMixed (n) {
     sdks.push(i % 2 === 0 ? native.sdks.shift() : hyperspace.sdks.shift())
   }
   return { sdks, cleanup }
-  function cleanup () {
-    native.cleanup()
-    hyperspace.cleanup()
+
+  async function cleanup () {
+    console.log('# [test/mixed] cleanup start (cleans up native and hyperspace)')
+    await Promise.all([
+      hyperspace.cleanup(),
+      native.cleanup()
+    ])
+    console.log('# [test/mixed] cleanup end')
   }
 }

@@ -3,143 +3,152 @@ const createNative = require('./lib/native')
 const createHyperspace = require('./lib/hyperspace')
 const createMixed = require('./lib/mixed')
 
-runAll()
+let cleanups = []
 
-async function runAll () {
-  await run(createNative, 'native')
-  await run(createHyperspace, 'hyperspace')
-  await run(createMixed, 'mixed')
+async function cleanupTests () {
+  console.log('# [test] cleaning up previous run')
+  while (cleanups.length > 0) {
+    await cleanups.shift()()
+  }
 }
 
-async function run (createTestSDKs, name) {
-  const { sdks, cleanup } = await createTestSDKs(2)
-  const { Hyperdrive, Hypercore, resolveName, close } = sdks[0]
-  const { Hyperdrive: Hyperdrive2, Hypercore: Hypercore2, close: close2 } = sdks[1]
+function runOnFirstCall (init) {
+  let result
+  return () => {
+    if (!result) {
+      result = init()
+    }
+    return result
+  }
+}
 
-  const TEST_TIMEOUT = 60 * 1000
+test.onFinish(cleanupTests)
+run(createNative, 'native')
+run(createHyperspace, 'hyperspace')
+run(createMixed, 'mixed')
+
+function run (createTestSDKs, name) {
+  const init = runOnFirstCall(async () => {
+    await cleanupTests()
+    console.log(`# [test/${name}] init start`)
+    const { sdks, cleanup } = await createTestSDKs(2)
+    const { Hyperdrive, Hypercore, resolveName, close } = sdks[0]
+    const { Hyperdrive: Hyperdrive2, Hypercore: Hypercore2, close: close2 } = sdks[1]
+    cleanups.push(async () => {
+      await Promise.all([
+        close(),
+        close2()
+      ])
+      await cleanup()
+    })
+    console.log(`# [test/${name}] init end`)
+    return {
+      Hyperdrive,
+      Hypercore,
+      resolveName,
+      Hyperdrive2,
+      Hypercore2
+    }
+  })
+
+  const TEST_TIMEOUT = 60 * 1000 * 2
 
   const EXAMPLE_DNS_URL = 'dat://dat.foundation'
   const EXAMPLE_DNS_RESOLUTION = '60c525b5589a5099aa3610a8ee550dcd454c3e118f7ac93b7d41b6b850272330'
 
-  test.onFinish(() => {
-    close(() => {
-      close2(() => {
-        process.nextTick(cleanup)
-      })
-    })
-  })
-
-  test(name + ': Hyperdrive - create drive', (t) => {
+  test(name + ': Hyperdrive - create drive', async t => {
     t.timeoutAfter(TEST_TIMEOUT)
+    const { Hyperdrive } = await init()
 
     const drive = Hyperdrive('Example drive 1')
 
-    drive.writeFile('/example.txt', 'Hello World!', (err) => {
-      t.error(err, 'Able to write to hyperdrive')
-
-      t.end()
-    })
+    await drive.writeFile('/example.txt', 'Hello World!')
+    t.pass('Able to write to hyperdrive')
   })
 
-  test(name + ': Hyperdrive - get existing drive', (t) => {
+  test(name + ': Hyperdrive - get existing drive', async t => {
+    const { Hyperdrive } = await init()
+
     const drive = Hyperdrive('Example drive 2')
+    await drive.ready()
 
-    drive.ready(() => {
-      const existing = Hyperdrive(drive.key)
+    const existing = Hyperdrive(drive.key)
 
-      t.equal(existing, drive, 'Got existing drive by reference')
-
-      t.end()
-    })
+    t.equal(existing, drive, 'Got existing drive by reference')
   })
 
-  test(name + ': Hyperdrive - load drive over network', (t) => {
+  test(name + ': Hyperdrive - load drive over network', async t => {
     t.timeoutAfter(TEST_TIMEOUT)
 
     const EXAMPLE_DATA = 'Hello World!'
 
+    const { Hyperdrive2, Hyperdrive } = await init()
+
     const drive1 = Hyperdrive2('Example drive 3')
-
-    drive1.writeFile('/index.html', EXAMPLE_DATA, (err) => {
-      t.error(err, 'wrote to initial drive')
-      const drive = Hyperdrive(drive1.key)
-      t.deepEqual(drive1.key, drive.key, 'loaded correct drive')
-      drive.once('peer-open', () => {
-        t.pass('Got peer for drive')
-        drive.readFile('/index.html', 'utf8', (err, data) => {
-          t.error(err, 'loaded file without error')
-          t.equal(data, EXAMPLE_DATA)
-
-          t.end()
-        })
-      })
-    })
+    await drive1.writeFile('/index.html', EXAMPLE_DATA)
+    const drive = Hyperdrive(drive1.key)
+    t.deepEqual(drive1.key, drive.key, 'loaded correct drive')
+    await new Promise(resolve => drive.once('peer-open', resolve))
+    t.pass('Got peer for drive')
+    t.equal(
+      await drive.readFile('/index.html', 'utf8'),
+      EXAMPLE_DATA
+    )
   })
 
-  test(name + ': Hyperdrive - new drive created after close', (t) => {
+  test(name + ': Hyperdrive - new drive created after close', async t => {
+    const { Hyperdrive } = await init()
     const drive = Hyperdrive('Example drive 5')
 
-    drive.ready(() => {
-      drive.close(() => {
-        const existing = Hyperdrive(drive.key)
+    await drive.ready()
+    await drive.close()
 
-        t.notOk(existing === drive, 'Got new drive by reference')
+    const existing = Hyperdrive(drive.key)
 
-        t.end()
-      })
-    })
+    t.notOk(existing === drive, 'Got new drive by reference')
   })
 
-  test(name + ': resolveName - resolve and load drive', (t) => {
+  test(name + ': resolveName - resolve and load drive', async t => {
+    const { resolveName } = await init()
     t.timeoutAfter(TEST_TIMEOUT)
 
-    resolveName(EXAMPLE_DNS_URL, (err, resolved) => {
-      t.error(err, 'Resolved successfully')
-
-      t.equal(resolved, EXAMPLE_DNS_RESOLUTION)
-      t.end()
-    })
+    t.equal(
+      await new Promise((resolve, reject) => resolveName(EXAMPLE_DNS_URL, (err, data) => err ? reject(err) : resolve(data))),
+      EXAMPLE_DNS_RESOLUTION
+    )
   })
 
-  test(name + ': Hypercore - create', (t) => {
+  test(name + ': Hypercore - create', async t => {
     t.timeoutAfter(TEST_TIMEOUT)
 
+    const { Hypercore } = await init()
     const core = Hypercore('Example hypercore 1')
-
-    core.append('Hello World', (err) => {
-      t.error(err, 'able to write to hypercore')
-
-      t.end()
-    })
+    await core.append('Hello World')
   })
 
-  test(name + ': Hypercore - load from network', (t) => {
+  test(name + ': Hypercore - load from network', async t => {
     t.timeoutAfter(TEST_TIMEOUT)
-    t.plan(3)
+    t.plan(2)
+
+    const { Hypercore, Hypercore2 } = await init()
 
     const core1 = Hypercore('Example hypercore 2')
-
-    core1.append('Hello World', () => {
-      const core2 = Hypercore2(core1.key)
-
-      core2.ready(() => {
-        t.deepEqual(core2.key, core1.key, 'loaded key correctly')
-      })
-
-      core2.once('peer-open', () => {
-        core2.get(0, (err, data) => {
-          t.error(err, 'no error reading from core')
-          t.ok(data, 'got data from replicated core')
-
-          t.end()
-        })
-      })
-    })
+    await core1.append('Hello World')
+    const core2 = Hypercore2(core1.key)
+    await core2.ready()
+    t.deepEqual(core2.key, core1.key, 'loaded key correctly')
+    await new Promise(resolve => core2.once('peer-open', resolve))
+    t.ok(
+      await core2.get(0),
+      'got data from replicated core'
+    )
   })
 
-  test(name + ': Hypercore - only close when all handles are closed', (t) => {
+  test(name + ': Hypercore - only close when all handles are closed', async t => {
     t.timeoutAfter(TEST_TIMEOUT)
     t.plan(5)
+
+    const { Hypercore } = await init()
 
     const core1 = Hypercore('Example hypercore 4')
     const core2 = Hypercore('Example hypercore 4')
@@ -148,16 +157,14 @@ async function run (createTestSDKs, name) {
 
     t.ok(core1 === core2, 'Second handle is same instance')
 
-    core1.append('Hello World', () => {
-      core1.close(() => {
-        t.pass('First core closed')
-        core1.get(0, (err) => {
-          t.error(err, 'Still able to read after close')
-          core2.close(() => {
-            t.pass('Second core closed')
-          })
-        })
-      })
-    })
+    await core1.append('Hello World')
+    await core1.close()
+    t.pass('First core closed')
+    t.ok(
+      await core1.get(0),
+      'Still able to read after close'
+    )
+    await core2.close()
+    t.pass('Second core closed')
   })
 }
