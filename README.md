@@ -132,6 +132,7 @@ const {
 	Hypercore,
 	Hyperdrive,
 	resolveName,
+  resolveURL,
 	close
 } = sdk
 
@@ -156,7 +157,7 @@ console.log(`Here's your URL: ${url}`)
 await drive.writeFile('/example.txt', 'Hello World!')
 console.log('Written example file!')
 
-const key = await resolveName('hyper://blog.mauve.moe')
+const key = await resolveName('blog.mauve.moe')
 const drive = Hyperdrive(key)
 await drive.download()
 
@@ -241,7 +242,7 @@ All available tests are run three times: For the native backend, for the hypersp
 
 To run tests in Node.js simply run `npm run test` in a checkout.
 
-To run the tests in a browser, first run `npm run build-test` to build the test bundle. Then, run `npm run test-proxy` to run both a [hyperswarm-web](https://github.com/RangerMauve/hyperswarm-web) proxy and two Hyperspace servers that listen for clients on a websocket. Finally, open [`test.html`](test.html) in a web browser and open the developer tools, where you should see the test results in the console.
+To run the tests in a browser, simply run `npm run test-browser` to build the test bundle. It will run several things in parallel.
 
 ## API
 
@@ -263,7 +264,7 @@ When running in NodeJS, this will attempt to connect to a hyperspace server runn
 
 *NOTE:* The *hyperspace* backend does not yet support the `deriveSecret` function (will throw an exception if used).
 
-### `const {Hypercore, Hyperdrive, resolveName, keyPair, deriveSecret, registerExtension, close} = await SDK(opts?)`
+### `const {Hypercore, Hyperdrive, resolveName, resolveURL, keyPair, deriveSecret, registerExtension, close} = await SDK(opts?)`
 
 Creates an instance of the Hyper SDK based on the options.
 
@@ -299,22 +300,29 @@ Options for all backends:
   - `valueEncoding: 'json' | 'utf-8' | 'binary'`: The encoding to use for the data stored in the hypercore. Use JSON to store / retrieve objects.
 - `opts.driveOpts`: This lets you configure the behavior of [Hyperdrive](https://github.com/mafintosh/hyperdrive) instances
   - `sparse: true`: Whether the history should be loaded on the fly instead of replicating the full history
-- `opts.dnsOpts`: Configure the [dat dns](https://github.com/datprotocol/dat-dns) resolution module. You probably shouldn't mess with this.
-  - `recordName: 'dat'`: name of .well-known file
-  - `protocolRegex: /^dat:\/\/([0-9a-f]{64})/i`: RegExp object for custom protocol
-  - `hashRegex: /^[0-9a-f]{64}?$/i`: RegExp object for custom hash i.e.
-  - `txtRegex: /"?datkey=([0-9a-f]{64})"?/i`: RegExp object for DNS TXT record of custom protocol
 
 ### `await close()`
 
 This closes all resources used by the SDK so you can safely end your process. `cb` will be invoked once resources are closed or if there's an error.
 
-### `const key = await resolveName(url)`
+### `const key = await resolveName(name[, opts])`
 
 Resolve a DNS name to a Hypercore key.
 
-  - `url` is a `hyper://` URL like `hyper://blog.mauve.moe`
+  - `name` is a domain name URL like `blog.mauve.moe`
+  - `opts`: See `hyper-dns` [options for `resolveProtocol`][resolve-opts]
   - `key` will be the key that you can pass to `Hyperdrive`
+
+[resolve-opts]: https://github.com/martinheidegger/hyper-dns/blob/main/docs/api.md#async-resolveprotocolprotocol-name-opts
+
+### `const url = await resolveURL(href[, opts])`
+
+Resolves a hyper url to a Hypercore url.
+
+  - `href` is the url to be resolve, like `hyper://blog.mauve.moe` or `blog.mauve.moe/fancy`
+  - `opts`: See `hyper-dns` [options for `resolveURL`][resolve-url-opts]
+
+[resolve-url-opts]: https://github.com/martinheidegger/hyper-dns/blob/main/docs/api.md#async-resolveurlurl-opts
 
 ### `const {publicKey, secretKey} = keyPair`
 

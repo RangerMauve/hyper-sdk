@@ -4,7 +4,7 @@ const path = require('path')
 if (!path.posix) path.posix = path
 
 const DatEncoding = require('dat-encoding')
-const datDNS = require('dat-dns')
+const dns = require('hyper-dns')
 const hyperdrive = require('hyperdrive')
 const makeHypercorePromise = require('@geut/hypercore-promise')
 const makeHyperdrivePromise = require('@geut/hyperdrive-promise')
@@ -17,7 +17,6 @@ const DEFAULT_CORE_OPTS = {
   sparse: true,
   persist: true
 }
-const DEFAULT_DNS_OPTS = {}
 const DEFAULT_APPLICATION_NAME = 'dat-sdk'
 
 const CLOSE_FN = Symbol('close')
@@ -41,11 +40,9 @@ async function SDK (opts = {}) {
   const {
     backend,
     driveOpts,
-    coreOpts,
-    dnsOpts
+    dnsOpts,
+    coreOpts
   } = opts
-
-  const dns = datDNS(Object.assign({}, DEFAULT_DNS_OPTS, dnsOpts))
 
   const handlers = await backend(opts)
   const {
@@ -64,7 +61,8 @@ async function SDK (opts = {}) {
   return {
     Hyperdrive,
     Hypercore,
-    resolveName,
+    resolveName: (name, opts) => dns.resolveProtocol('hyper', name, { ...dnsOpts, ...opts }),
+    resolveURL: (input, opts) => dns.resolveURL(input, { ...dnsOpts, protocols: [dns.protocols.hyper], ...opts }),
     getIdentity,
     deriveSecret,
     registerExtension,
@@ -101,10 +99,6 @@ async function SDK (opts = {}) {
           handlers.close(error => { error ? reject(error): resolve() })
       )
     }
-  }
-
-  function resolveName (url, cb) {
-    return dns.resolveName(url, cb)
   }
 
   function registerExtension (name, handlers) {

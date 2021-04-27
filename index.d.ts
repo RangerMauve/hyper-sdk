@@ -1,3 +1,6 @@
+import hyperdns from 'hyper-dns'
+import { ResolveOptions } from 'hyper-dns/resolve'
+
 // TODO: Figure out Hyperspace options
 declare module "hyper-sdk" {
   // TODO: Support abstract-encoding
@@ -17,7 +20,7 @@ declare module "hyper-sdk" {
     corestoreOpts?: CorestoreOpts;
     coreOpts?: HypercoreOptions;
     driveOpts?: HyperdriveOptions;
-    dnsOpts?: DNSOptions;
+    dnsOpts?: Omit<ResolveOptions, 'signal' | 'timeout'>
     swarmOpts?: HyperswarmOptions | HyperswarmWebOptions
   }
 
@@ -32,13 +35,6 @@ declare module "hyper-sdk" {
     maxPeers?: number
     webrtcBootstrap?: string[]
     wsProxy?: string
-  }
-
-  export interface DNSOptions {
-    recordName?: string
-    protocolRegex?: RegExp
-    hashRegex?: RegExp
-    txtRegex?: RegExp
   }
 
   export interface HypercoreOptions {
@@ -340,7 +336,8 @@ declare module "hyper-sdk" {
     Hyperdrive(keyOrName: string, opts? : HyperdriveOptions) : Hyperdrive;
     Hypercore<E=Buffer>(keyOrName: string, opts? : HypercoreOptions) : Hypercore<E>;
 
-    resolveName(url: string) : Promise<string>
+    resolveName: typeof hyperdns.resolveProtocol
+    resolveURL: typeof hyperdns.resolveURL
     deriveSecret(namespace: string, name: string) : Promise<Buffer>
 
     registerExtension<M=Buffer>(name: string, handlers: ExtensionHandlers<M>) : Extension<M>

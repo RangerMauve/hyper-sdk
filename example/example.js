@@ -43,7 +43,7 @@ async function run () {
   console.log('Written example file!')
 
   // This example is currently broken because Beaker's website isn't on Dat 2 yet
-  const key = await resolveName('dat://beakerbrowser.com')
+  const key = await resolveName('beakerbrowser.com')
 
   console.log('Resolved key', key)
 
@@ -116,7 +116,9 @@ async function run () {
       console.log('Got key: ', node.key)
       console.log('Loaded value from trie: ', node.value)
 
-      close()
+      close(() => {
+        console.log('closed.')
+      })
     })
   })
 }

@@ -32,7 +32,7 @@ function run (createTestSDKs, name) {
     await cleanupTests()
     console.log(`# [test/${name}] init start`)
     const { sdks, cleanup } = await createTestSDKs(2)
-    const { Hyperdrive, Hypercore, resolveName, close } = sdks[0]
+    const { Hyperdrive, Hypercore, resolveName, resolveURL, close } = sdks[0]
     const { Hyperdrive: Hyperdrive2, Hypercore: Hypercore2, close: close2 } = sdks[1]
     cleanups.push(async () => {
       await Promise.all([
@@ -46,6 +46,7 @@ function run (createTestSDKs, name) {
       Hyperdrive,
       Hypercore,
       resolveName,
+      resolveURL,
       Hyperdrive2,
       Hypercore2
     }
@@ -53,8 +54,8 @@ function run (createTestSDKs, name) {
 
   const TEST_TIMEOUT = 60 * 1000 * 2
 
-  const EXAMPLE_DNS_URL = 'dat://dat.foundation'
-  const EXAMPLE_DNS_RESOLUTION = '60c525b5589a5099aa3610a8ee550dcd454c3e118f7ac93b7d41b6b850272330'
+  const EXAMPLE_DNS_DOMAIN = 'dns-test-setup.dat-ecosystem.org'
+  const EXAMPLE_DNS_RESOLUTION = '000978b5589a5099aa3610a8ee550dcd454c3e33f4cac93b7d41b6b850cde000'
 
   test(name + ': Hyperdrive - create drive', async t => {
     t.timeoutAfter(TEST_TIMEOUT)
@@ -108,13 +109,15 @@ function run (createTestSDKs, name) {
     t.notOk(existing === drive, 'Got new drive by reference')
   })
 
-  test(name + ': resolveName - resolve and load drive', async t => {
-    const { resolveName } = await init()
-    t.timeoutAfter(TEST_TIMEOUT)
-
+  test(name + ': resolveName - resolve names and urls', async t => {
+    const { resolveName, resolveURL } = await init()
     t.equal(
-      await new Promise((resolve, reject) => resolveName(EXAMPLE_DNS_URL, (err, data) => err ? reject(err) : resolve(data))),
+      await resolveName(EXAMPLE_DNS_DOMAIN),
       EXAMPLE_DNS_RESOLUTION
+    )
+    t.equal(
+      (await resolveURL(`hyper://${EXAMPLE_DNS_DOMAIN}/my/path`)).href,
+      `hyper://${EXAMPLE_DNS_RESOLUTION}/my/path`
     )
   })
 
