@@ -64,3 +64,6 @@ package-lock.json
 test-bundle.js
 bundle.js
 dat-sdk-bundle.js
+
+# IDE
+.idea

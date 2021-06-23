@@ -129,10 +129,10 @@ const sdk = await SDK({
 });
 
 const {
-	Hypercore,
-	Hyperdrive,
-	resolveName,
-	close
+	Hypercore,    // Create a new Hypercore
+	Hyperdrive,   // Create a new Hyperdrive
+	resolveName,  // Resolve hyper:// address to key using hyper-dns
+	close         // Cleanup all hyper related resources
 } = sdk
 
 // Create a new Hyperdrive.
@@ -156,8 +156,11 @@ console.log(`Here's your URL: ${url}`)
 await drive.writeFile('/example.txt', 'Hello World!')
 console.log('Written example file!')
 
+// Resolve a hyper:// address to a key
 const key = await resolveName('hyper://blog.mauve.moe')
 const drive = Hyperdrive(key)
+
+// Pre-download the drive
 await drive.download()
 
 // Delete all the data
@@ -167,11 +170,14 @@ const SOME_URL = 'dat://0a9e202b8055721bd2bc93b3c9bbc03efdbda9cfee91f01a123fdeaa
 
 const somedrive = Hyperdrive(SOME_URL)
 
+// Download '/' from hyperdrive
 console.log(await somedrive.readdir('/'))
 
 // Create a hypercore
 // Check out the hypercore docs for what you can do with it
 // https://github.com/mafintosh/hypercore
+// If you're using TypeScript, make sure to appropriately type the generic Hypercore
+// e.g. Hypercore<string>(...) for a JSON encoded Hypercore
 const myCore = Hypercore('my hypercore name', {
   valueEncoding: 'json',
   persist: false,
@@ -189,7 +195,7 @@ await myCore.append(JSON.stringify({
 
 // Use extension messages for sending extra data over the p2p connection
 const discoveryCoreKey = 'dat://bee80ff3a4ee5e727dc44197cb9d25bf8f19d50b0f3ad2984cfe5b7d14e75de7'
-const discoveryCore = new Hypercore(discoveryCoreKey)
+const discoveryCore = Hypercore(discoveryCoreKey)
 
 // Register the extension message handler
 const extension = discoveryCore.registerExtension('discovery', {
@@ -199,13 +205,13 @@ const extension = discoveryCore.registerExtension('discovery', {
 		// Recieved messages will be automatically decoded
 		console.log('Got key from peer!', message)
 
-		const otherCore = new Hypercore(message, {
-      valueEncoding: 'json',
-      persist: false
-    })
-
-    // Render the peer's data from their core
-    otherCore.get(0, console.log)
+		const otherCore = Hypercore(message, {
+          valueEncoding: 'json',
+          persist: false
+        })
+    
+        // Render the peer's data from their core
+        otherCore.get(0, console.log)
 	}
 })
 
@@ -221,7 +227,7 @@ const hypertrie = require('hypertrie')
 // Check out what you can do with hypertrie from there:
 // https://github.com/mafintosh/hypertrie
 const trie = hypertrie(null, {
-  feed: new Hypercore('my trie core', {
+  feed: Hypercore('my trie core', {
     persist: false
   })
 })
