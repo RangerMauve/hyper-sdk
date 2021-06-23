@@ -348,5 +348,5 @@ declare module "hyper-sdk" {
     close() : Promise<void>;
   }
 
-  export default function SDK(opts: SDKOptions) : SDKInstance;
+  export default function SDK(opts: SDKOptions) : Promise<SDKInstance>;
 }
