@@ -31,7 +31,8 @@ declare module "hyper-sdk" {
   export interface HyperswarmWebOptions {
     maxPeers?: number
     webrtcBootstrap?: string[]
-    wsProxy?: string
+    wsProxy?: string,
+    wsReconnectDelay?: number
   }
 
   export interface DNSOptions {
