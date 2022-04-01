@@ -115,6 +115,7 @@ module.exports = {
             os: require.resolve('os-browserify/browser'),
             stream: require.resolve('stream-browserify'),
             constants: require.resolve('constants-browserify'),
+            assert: require.resolve("assert/"), // Note the trailing slash
             buffer: require.resolve('buffer/'),  // Note the trailing slash
             process: 'process/browser',
             fs: false
