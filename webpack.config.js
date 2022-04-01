@@ -3,10 +3,7 @@ This is an example config file to bundle your hyper-sdk project with webpack 5.
 
 Instructions:
 
-install webpack and webpack-cli:
-npm install webpack webpack-cli
-
-Install all dependencies used as alias or fallback:
+Install all dependencies used as alias or fallback, and webpack and webpack-cli themselves:
 npm install webpack webpack-cli hyperswarm-web crypto-browserify path-browserify os-browserify/browser stream-browserify constants-browserify buffer process/browser
 
 Run webpack:
