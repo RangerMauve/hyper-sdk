@@ -136,8 +136,7 @@ module.exports = {
 First install all dependencies:
 
 ```
-npm install webpack webpack-cli hyperswarm-web crypto-browserify path-browserify os-browserify/browser stream-browserify constants-browserify buffer process/browser
-```
+npm install webpack webpack-cli hyperswarm-web crypto-browserify path-browserify os-browserify stream-browserify constants-browserify buffer process```
 
 Then create the bundle:
 
