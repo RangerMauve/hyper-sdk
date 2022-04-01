@@ -4,7 +4,7 @@ This is an example config file to bundle your hyper-sdk project with webpack 5.
 Instructions:
 
 Install all dependencies used as alias or fallback, and webpack and webpack-cli themselves:
-npm install webpack webpack-cli hyperswarm-web crypto-browserify path-browserify os-browserify/browser stream-browserify constants-browserify buffer process/browser
+npm install webpack webpack-cli hyperswarm-web crypto-browserify path-browserify os-browserify stream-browserify constants-browserify buffer process assert
 
 Run webpack:
 webpack
@@ -46,7 +46,7 @@ module.exports = {
             os: require.resolve('os-browserify/browser'),
             stream: require.resolve('stream-browserify'),
             constants: require.resolve('constants-browserify'),
-
+            assert: require.resolve("assert/"), // Note the trailing slash
             /*
                 The ones who follow cause errors which are only detected at runtime
                 when they are not added
