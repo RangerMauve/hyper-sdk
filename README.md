@@ -88,29 +88,71 @@ Once you `npm run build` then you can use the generated `bundle.js` in your proj
 
 ## Compile with Webpack (webpack.config.js)
 
-To bundle with webpack, you'll need to alias some dependencies.
+These instructions are for Webpack 5.
+
+Webpack 5 no longer polyfills Node.js core modules automatically,
+so you need to polyfill quite a few of them to get it working in the browser.
+I managed to get it working with [the following config file](./webpack.config.js).
+This config file contains a few comments to better explain what happens.
+If you just want to get it working quickly,
+simply put this comment-less version in your `.webpack.config.js `:
 
 ```js
 const path = require('path')
+var webpack = require('webpack');
 
 module.exports = {
-  entry: './index.js',
-  target: 'web',
-  resolve: {
-    alias: {
-      fs: 'graceful-fs',
-      hyperswarm: 'hyperswarm-web',
-      util: './node_modules/util/util.js'
-    }
-  },
-  output: {
-    filename: 'bundle.js',
-    path: path.resolve(__dirname, 'dist')
-  }
+    'mode': 'development',
+    entry: './index.js',
+    target: 'web',
+    resolve: {
+        alias: {
+            hyperswarm: 'hyperswarm-web',
+        },
+        fallback: {
+            crypto: require.resolve("crypto-browserify"),
+            path: require.resolve("path-browserify"),
+            os: require.resolve('os-browserify/browser'),
+            stream: require.resolve('stream-browserify'),
+            constants: require.resolve('constants-browserify'),
+            assert: require.resolve("assert/"), // Note the trailing slash
+            buffer: require.resolve('buffer/'),  // Note the trailing slash
+            process: 'process/browser',
+            fs: false
+        },
+    },
+    plugins: [
+        new webpack.ProvidePlugin({
+            Buffer: ['buffer', 'Buffer'],
+            process: 'process/browser',
+        }),
+    ],
+    output: {
+        filename: 'bundle.js',
+        path: path.resolve(__dirname, 'dist')
+    },
 }
 ```
 
+First install all dependencies:
+
+```
+npm install webpack webpack-cli hyperswarm-web crypto-browserify path-browserify os-browserify stream-browserify constants-browserify buffer process assert```
+
+Then create the bundle:
+
+```
+webpack
+```
+
 Then you can include `./dist/bundle.js` in your HTML page.
+
+Note that you might need to add additional aliases or fallbacks
+if they are used within your code.
+See [webpack docs](https://webpack.js.org/configuration/resolve/#resolvefallback)
+for the full list
+of core Node.js modules which require a polyfill when used.
+
 
 ## API/Examples
 
