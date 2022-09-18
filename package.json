@@ -1,18 +1,14 @@
 {
   "name": "hyper-sdk",
-  "version": "3.0.10",
+  "version": "4.0.0",
   "description": "A Software Development Kit for the Hypercore-Protocol",
   "main": "index.js",
   "scripts": {
-    "test": "node test/test.js",
-    "test-browser": "node test/bin/test-browser.js",
-    "build": "cross-env BABEL_DISABLE_CACHE=1 browserify -t [ babelify --global ] --standalone hyperSDK index.js > hyper-sdk-bundle.js",
-    "build-test": "cross-env BABEL_DISABLE_CACHE=1 browserify -t [ babelify --global ] -d test/test.js",
-    "update-deps": "npm install --save hyperswarm@latest @corestore/networker@latest hyperdrive@latest corestore@latest hypercore@latest hypercore-protocol@latest hypercore-crypto@latest @geut/hyperdrive-promise@latest @geut/hypercore-promise@latest"
+    "test": "echo TODO"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/datproject/sdk.git"
+    "url": "git+https://github.com/rangermauve/hyper-sdk.git"
   },
   "keywords": [
     "dat",
@@ -22,69 +18,14 @@
     "hypercore-protocol",
     "p2p"
   ],
-  "author": "datproject",
+  "author": "RangerMauve",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/datproject/sdk/issues"
+    "url": "https://github.com/rangermauve/hyper-sdk/issues"
   },
-  "browser": {
-    "dat-dns": "./dns-web.js",
-    "./test/lib/env.js": "./test/lib/env.browser.js",
-    "hyperswarm": "hyperswarm-web",
-    "net": "webnet"
-  },
-  "browserify": {
-    "transform": [
-      [
-        "babelify",
-        {
-          "global": true
-        }
-      ]
-    ]
-  },
-  "homepage": "https://github.com/datproject/sdk#readme",
-  "files": [
-    "README.md",
-    "index.js",
-    "dns-web.js",
-    "babel.config.json",
-    "native.js",
-    "sdk.js",
-    "hyperspace.js",
-    "index.d.ts"
-  ],
+  "homepage": "https://github.com/rangermauve/hyper-sdk#readme",
   "dependencies": {
-    "@corestore/networker": "^1.2.0",
-    "@geut/hypercore-promise": "^2.1.1",
-    "@geut/hyperdrive-promise": "^3.1.3",
-    "@hyperspace/client": "^1.12.0",
-    "corestore": "^5.8.2",
-    "dat-dns": "^4.0.0",
-    "dat-encoding": "^5.0.1",
-    "hypercore": "^9.11.0",
-    "hypercore-crypto": "^2.3.0",
-    "hypercore-protocol": "^8.0.7",
-    "hyperdrive": "^10.21.0",
-    "hyperswarm": "^2.15.3",
-    "hyperswarm-web": "^2.1.1",
-    "random-access-application": "^1.0.0",
-    "random-access-memory": "^3.1.1"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.9.0",
-    "@babel/plugin-proposal-class-properties": "^7.12.1",
-    "@types/node": "^15.0.0",
-    "babel-plugin-module-resolver": "^4.0.0",
-    "babelify": "^10.0.0",
-    "browserify": "^17.0.0",
-    "cross-env": "^7.0.2",
-    "hyperspace": "^3.9.0",
-    "random-access-file": "^2.1.3",
-    "tape": "^5.2.2",
-    "tape-run": "^9.0.0",
-    "tmp-promise": "^3.0.2",
-    "util": "^0.12.2",
-    "webnet": "^1.0.0"
+    "corestore": "^6.1.1",
+    "hyperswarm": "^4.3.3"
   }
 }
