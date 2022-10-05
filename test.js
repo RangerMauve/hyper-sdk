@@ -73,11 +73,11 @@ test('Connect directly between two peers', async (t) => {
   const onPeer = once(sdk2, 'peer-add')
   const onPeernt = once(sdk2, 'peer-remove')
   try {
-    await sdk1.joinPeer(sdk2.id)
+    await sdk1.joinPeer(sdk2.publicKey)
 
     const [peerInfo] = await onPeer
 
-    t.deepEquals(peerInfo.publicKey, sdk1.id, 'Connected to peer')
+    t.deepEquals(peerInfo.publicKey, sdk1.publicKey, 'Connected to peer')
   } finally {
     await Promise.all([
       sdk1.close(),

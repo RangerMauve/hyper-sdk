@@ -66,7 +66,7 @@ export class SDK extends EventEmitter {
     }
   }
 
-  get id () {
+  get publicKey () {
     return this.swarm.keyPair.publicKey
   }
 
