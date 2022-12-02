@@ -14,8 +14,7 @@ The Hyper SDK combines the lower level pieces of the Hyper stack into high level
 - Cross-platform with same codebase
   - ✔ Node
   - ✔ Electron
-  - 🏗️ Web
-  - 🏗️ React-Native
+  - 🏗️ Web (PRs welcome)
 
 ## Installation
 
@@ -35,7 +34,7 @@ import * as SDK from "hyper-sdk"
 ### SDK.create()
 
 ```JavaScript
-const sdk = await create({
+const sdk = await SDK.create({
   // Specify the "storage" you want
   // Regular strings will be passed to `random-access-application` to store in your user directory
   // On web this will use `random-access-web` to choose the best storage based on the browser
@@ -67,7 +66,7 @@ This is a 32 byte buffer which can be use in conjunction with `sdk.joinPeer()` t
 
 ### sdk.connections
 
-The list of active connections to other peers
+The list of active connections to other peers, taken from hyperswarm.
 
 ### sdk.peers
 
@@ -79,13 +78,22 @@ You can find more docs in the [hyperswarm](https://github.com/hyperswarm/hypersw
 
 ### sdk.cores
 
-List of active Hypercores
+List of active Hypercores.
 
-### sdk.on('peer-add') / sdk.on('peer-remove')
+### sdk.on('peer-add', peerInfo) / sdk.on('peer-remove', peerInfo)
 
 You can listen on when a peer gets connected or disconnected with this event.
 
 You can find more docs in the [hyperswarm](https://github.com/hyperswarm/hyperswarm#peerinfo-api) repo.
+
+```JavaScript
+sdk.on('peer-add', (peerInfo) => {
+  console.log('Connected to', peerInfo.publicKey, 'on', peerInfo.topics)
+})
+sdk.on('peer-add', (peerInfo) => {
+  console.log('Disconnected from')
+})
+```
 
 ### sdk.get()
 
@@ -132,7 +140,7 @@ const key = await sdk.resolveDNSToKey('example.mauve.moe')
 
 ### sdk.namespace()
 
-Get back a namespaced Corestore instance which can be passed to things like Hyperdrive.
+Get back a namespaced [Corestore](https://github.com/hypercore-protocol/corestore/) instance which can be passed to things like Hyperdrive.
 
 Note that cores initialized with a namespaced corestore will not be auto-joined and you will need to call `sdk.join(core.discoveryKey)` on said cores.
 

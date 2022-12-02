@@ -21,8 +21,8 @@ test('Load hypercores by names and urls', async (t) => {
       NULL_KEY,
       NULL_BUFFER,
       NULL_HEX_KEY,
-    `hyper://${NULL_KEY}`,
-    `hyper://${NULL_HEX_KEY}`
+      `hyper://${NULL_KEY}`,
+      `hyper://${NULL_HEX_KEY}`
     ]
 
     for (const key of toTry) {

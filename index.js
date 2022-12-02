@@ -148,7 +148,6 @@ export class SDK extends EventEmitter {
     await core.ready()
 
     if (coreOpts.autoJoin && !core.discovery) {
-      console.log('Auto joining')
       const discovery = this.join(core.discoveryKey, opts)
       core.discovery = discovery
 
