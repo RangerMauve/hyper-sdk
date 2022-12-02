@@ -4,10 +4,10 @@ on: [ push, pull_request ]
 
 jobs:
   build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
-        node: [ '16', '18' ]
+        node: [ '18' ]
     name: Node ${{ matrix.node }} sample
     steps:
       - uses: actions/checkout@v2
