@@ -4,10 +4,10 @@ on: [ push, pull_request ]
 
 jobs:
   build:
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-18.04
     strategy:
       matrix:
-        node: [ '12', '14', '16' ]
+        node: [ '16', '18' ]
     name: Node ${{ matrix.node }} sample
     steps:
       - uses: actions/checkout@v2
@@ -16,7 +16,3 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: npm install
       - run: npm run test
-      - uses: GabrielBB/xvfb-action@v1.0
-        with:
-          run: npm run test-browser 
-        if: ${{ matrix.node == '16' }}
