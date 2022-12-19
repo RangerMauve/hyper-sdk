@@ -2,11 +2,53 @@ import test from 'tape'
 import { once } from 'events'
 import { create } from './index.js'
 import b4a from 'b4a'
+import { withDir } from 'tmp-promise'
 
 const NULL_KEY = 'yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy'
 const NULL_BUFFER = b4a.alloc(32, 0)
 const NULL_HEX_KEY = NULL_BUFFER.toString('hex')
 const NULL_URL = `hyper://${NULL_KEY}/`
+
+test.only('Specify storage for sdk', async (t) => {
+  await withDir(async (dir) => {
+    const storage = dir.path
+    const name = 'example'
+    const data = 'Hello World!'
+
+    let sdk = await create({ storage })
+    let sdk2 = null
+
+    try {
+      try {
+        sdk2 = await create({ storage })
+        t.fail(new Error('Should not be able to load SDK over existing dir'))
+      } catch {
+        t.pass('Threw error when opening same storage path twice')
+      } finally {
+        if (sdk2) await sdk2.close()
+      }
+
+      const core1 = await sdk.get(name)
+      const url1 = core1.url
+      await core1.append(data)
+
+      await sdk.close()
+
+      sdk = await create({ storage })
+
+      const core2 = await sdk.get(name)
+      const url2 = core2.url
+
+      t.equal(url1, url2, 'Loaded core has same key')
+
+      const contents = await core2.get(0)
+
+      t.deepEqual(contents.toString('utf8'), data, 'Got data back from disk')
+    } finally {
+      await sdk.close()
+    }
+  }, {unsafeCleanup: true})
+})
 
 test('Load hypercores by names and urls', async (t) => {
   const sdk = await create({ storage: false })
