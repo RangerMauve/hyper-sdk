@@ -47,7 +47,7 @@ test('Specify storage for sdk', async (t) => {
     } finally {
       await sdk.close()
     }
-  }, {unsafeCleanup: true})
+  }, { unsafeCleanup: true })
 })
 
 test('Load hypercores by names and urls', async (t) => {
@@ -106,8 +106,42 @@ test('Resolve DNS in hyper URLs', async (t) => {
   }
 })
 
+test.only('Load a core between two peers', async (t) => {
+  t.timeoutAfter(30000)
+
+  const sdk1 = await create({ storage: false })
+  const sdk2 = await create({ storage: false })
+  try {
+    t.comment('Initializing core on first peer')
+
+    const core1 = await sdk1.get('example')
+    await core1.append('Hello World!')
+
+    await delay(3000)
+
+    t.comment('Loading core on second peer')
+
+    const core2 = await sdk2.get(core1.url)
+
+    if (!core2.peers?.length) {
+      throw new Error('Unable to find peer')
+    }
+
+    t.equal(core2.url, core1.url, 'Got expected URL')
+    t.equal(core2.length, 1, 'Not empty')
+
+    const data = await core2.get(0)
+    t.deepEqual(data, Buffer.from('Hello World!'), 'Got block back out')
+  } finally {
+    await Promise.all([
+      sdk1.close(),
+      sdk2.close()
+    ])
+  }
+})
+
 test('Connect directly between two peers', async (t) => {
-  t.timeoutAfter(10000)
+  t.timeoutAfter(30000)
 
   const sdk1 = await create({ storage: false })
   const sdk2 = await create({ storage: false })
@@ -133,3 +167,7 @@ test('Connect directly between two peers', async (t) => {
 })
 
 // test('', async (t) => {})
+
+function delay(time = 1000) {
+  return new Promise((resolve) => setTimeout(resolve, time))
+}

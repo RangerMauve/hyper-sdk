@@ -27,6 +27,7 @@ export const DEFAULT_SWARM_OPTS = {
 export const DEFAULT_DNS_QUERY_OPTS = {
   endpoints: await wellknown.endpoints('doh')
 }
+export const AUTO_JOIN_TIMEOUT = 5 * 1000
 
 // Monkey-patching Hypercore with first class URL support
 Object.defineProperty(Hypercore.prototype, 'url', {
@@ -44,8 +45,9 @@ export class SDK extends EventEmitter {
     defaultJoinOpts = DEFAULT_JOIN_OPTS,
     defaultDNSOpts = DEFAULT_DNS_QUERY_OPTS,
     autoJoin = true,
+    autoJoinTimeout = AUTO_JOIN_TIMEOUT,
     doReplicate = true
-  }) {
+  } = {}) {
     super()
     this.swarm = swarm
     this.corestore = corestore
@@ -56,6 +58,7 @@ export class SDK extends EventEmitter {
     this.defaultDNSOpts = defaultDNSOpts
 
     this.autoJoin = autoJoin
+    this.autoJoinTimeout = autoJoinTimeout
 
     if (doReplicate) {
       swarm.on('connection', (connection, peerInfo) => {
@@ -154,6 +157,15 @@ export class SDK extends EventEmitter {
       // Await for initial peer if not writable
       if (!core.writable && !core.length) {
         await discovery.flushed()
+
+        if (!core.peers?.length) {
+          await Promise.race([
+            new Promise((resolve) => core.once('peer-add', resolve)),
+            // TODO: Make the timeout configurable
+            new Promise((resolve) => setTimeout(resolve, this.autoJoinTimeout))
+          ])
+        }
+        await core.update()
       }
 
       core.once('close', () => {
