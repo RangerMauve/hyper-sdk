@@ -9,7 +9,7 @@ const NULL_BUFFER = b4a.alloc(32, 0)
 const NULL_HEX_KEY = NULL_BUFFER.toString('hex')
 const NULL_URL = `hyper://${NULL_KEY}/`
 
-test.only('Specify storage for sdk', async (t) => {
+test('Specify storage for sdk', async (t) => {
   await withDir(async (dir) => {
     const storage = dir.path
     const name = 'example'
