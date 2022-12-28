@@ -27,7 +27,6 @@ export const DEFAULT_SWARM_OPTS = {
 export const DEFAULT_DNS_QUERY_OPTS = {
   endpoints: await wellknown.endpoints('doh')
 }
-export const AUTO_JOIN_TIMEOUT = 5 * 1000
 
 // Monkey-patching Hypercore with first class URL support
 Object.defineProperty(Hypercore.prototype, 'url', {
@@ -45,7 +44,6 @@ export class SDK extends EventEmitter {
     defaultJoinOpts = DEFAULT_JOIN_OPTS,
     defaultDNSOpts = DEFAULT_DNS_QUERY_OPTS,
     autoJoin = true,
-    autoJoinTimeout = AUTO_JOIN_TIMEOUT,
     doReplicate = true
   } = {}) {
     super()
@@ -58,7 +56,6 @@ export class SDK extends EventEmitter {
     this.defaultDNSOpts = defaultDNSOpts
 
     this.autoJoin = autoJoin
-    this.autoJoinTimeout = autoJoinTimeout
 
     if (doReplicate) {
       swarm.on('connection', (connection, peerInfo) => {
@@ -154,18 +151,33 @@ export class SDK extends EventEmitter {
       const discovery = this.join(core.discoveryKey, opts)
       core.discovery = discovery
 
+      // If we're the owner, then we could wait until is fully announced
+      if (core.writable) {
+        // await discovery.flushed()
+      }
+
       // Await for initial peer if not writable
       if (!core.writable && !core.length) {
-        await discovery.flushed()
+        let foundPeers = false
+        let retries = 0
 
-        if (!core.peers?.length) {
-          await Promise.race([
-            new Promise((resolve) => core.once('peer-add', resolve)),
-            // TODO: Make the timeout configurable
-            new Promise((resolve) => setTimeout(resolve, this.autoJoinTimeout))
-          ])
+        const onpeer = () => foundPeers = true
+        this.swarm.once('connection', onpeer)
+
+        while (!foundPeers) {
+          if (retries++) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * retries))
+            await discovery.refresh()
+          }
+
+          const done = core.findingPeers()
+          this.swarm.flush().then(done)
+          await core.update()
+
+          if (retries === 5) break
         }
-        await core.update()
+
+        this.swarm.removeListener('connection', onpeer)
       }
 
       core.once('close', () => {
