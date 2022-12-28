@@ -106,7 +106,7 @@ test('Resolve DNS in hyper URLs', async (t) => {
   }
 })
 
-test('Load a core between two peers', async (t) => {
+test.only('Load a core between two peers', async (t) => {
   t.timeoutAfter(30000)
 
   const sdk1 = await create({ storage: false })
