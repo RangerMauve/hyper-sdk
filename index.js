@@ -151,33 +151,16 @@ export class SDK extends EventEmitter {
       const discovery = this.join(core.discoveryKey, opts)
       core.discovery = discovery
 
-      // If we're the owner, then we could wait until is fully announced
+      // If we're the owner, then we wait until is fully announced
       if (core.writable) {
-        // await discovery.flushed()
+        await discovery.flushed()
       }
 
-      // Await for initial peer if not writable
+      // Await for initial peer for new readable cores
       if (!core.writable && !core.length) {
-        let foundPeers = false
-        let retries = 0
-
-        const onpeer = () => foundPeers = true
-        this.swarm.once('connection', onpeer)
-
-        while (!foundPeers) {
-          if (retries++) {
-            await new Promise(resolve => setTimeout(resolve, 1000 * retries))
-            await discovery.refresh()
-          }
-
-          const done = core.findingPeers()
-          this.swarm.flush().then(done)
-          await core.update()
-
-          if (retries === 5) break
-        }
-
-        this.swarm.removeListener('connection', onpeer)
+        const done = core.findingPeers()
+        this.swarm.flush().then(done)
+        await core.update()
       }
 
       core.once('close', () => {
