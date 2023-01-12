@@ -106,7 +106,7 @@ test('Resolve DNS in hyper URLs', async (t) => {
   }
 })
 
-test.only('Load a core between two peers', async (t) => {
+test('Load a core between two peers', async (t) => {
   t.timeoutAfter(30000)
 
   const sdk1 = await create({ storage: false })
@@ -121,10 +121,7 @@ test.only('Load a core between two peers', async (t) => {
 
     const core2 = await sdk2.get(core1.url)
 
-    /* if (!core2.peers?.length) {
-      throw new Error('Unable to find peer')
-    } */
-
+    t.ok(core2.peers?.length, 'Found peer')
     t.equal(core2.url, core1.url, 'Got expected URL')
     t.equal(core2.length, 1, 'Not empty')
 
@@ -165,7 +162,3 @@ test('Connect directly between two peers', async (t) => {
 })
 
 // test('', async (t) => {})
-
-function delay(time = 1000) {
-  return new Promise((resolve) => setTimeout(resolve, time))
-}
