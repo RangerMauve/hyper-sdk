@@ -25,7 +25,7 @@ export const DEFAULT_CORESTORE_OPTS = {
 export const DEFAULT_SWARM_OPTS = {
 }
 export const DEFAULT_DNS_QUERY_OPTS = {
-  endpoints: await wellknown.endpoints('doh')
+  endpoints: wellknown.endpoints('doh')
 }
 
 // Monkey-patching Hypercore with first class URL support
