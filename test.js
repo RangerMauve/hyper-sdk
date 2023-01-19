@@ -161,4 +161,62 @@ test('Connect directly between two peers', async (t) => {
   t.pass('Peer remove event detected')
 })
 
+test('Get a hyperdrive and share a file', async (t) => {
+  const sdk1 = await create({ storage: false })
+  const sdk2 = await create({ storage: false })
+  try {
+    const drive1 = await sdk1.getDrive('example')
+
+    const ws = drive1.createWriteStream('/blob.txt')
+    const onWrote = once(ws, 'close')
+
+    ws.write('Hello, ')
+    ws.write('world!')
+    ws.end()
+
+    await onWrote
+
+    const drive2 = await sdk2.getDrive(drive1.url)
+
+    t.equal(drive2.url, drive1.url, 'Loaded drive has same URL')
+
+    const rs = drive2.createReadStream('/blob.txt')
+
+    let data = ''
+    for await (const chunk of rs) {
+      data += chunk.toString('utf8')
+    }
+
+    t.equal(data, 'Hello, world!', 'Loaded expected data')
+  } finally {
+    await Promise.all([
+      sdk1.close(),
+      sdk2.close()
+    ])
+  }
+})
+
+test('Get a hyperbee and share a key value pair', async (t) => {
+  const sdk1 = await create({ storage: false })
+  const sdk2 = await create({ storage: false })
+  try {
+    const encodingOpts = { keyEncoding: 'utf8', valueEncoding: 'utf8' }
+    const db1 = await sdk1.getBee('example', encodingOpts)
+
+    await db1.put('hello', 'world')
+
+    const db2 = await sdk2.getBee(db1.url, encodingOpts)
+    t.equal(db2.url, db1.url, 'Loaded bee has same URL')
+
+    const {value} = await db2.get('hello')
+
+    t.equal(value, 'world', 'Got value for key')
+  } finally {
+    await Promise.all([
+      sdk1.close(),
+      sdk2.close()
+    ])
+  }
+})
+
 // test('', async (t) => {})

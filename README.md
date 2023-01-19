@@ -97,7 +97,7 @@ sdk.on('peer-add', (peerInfo) => {
 
 ### sdk.get()
 
-You can initialize a [Hypercore](https://github.com/hypercore-protocol/hypercore) instanceby passing in a key, a name to derive a key from, or a URL containing either a key or a DNS name.
+You can initialize a [Hypercore](https://github.com/hypercore-protocol/hypercore) instance by passing in a key, a name to derive a key from, or a URL containing either a key or a DNS name.
 
 You can also pass additional options for whether the hypercore should be replicated as sparse or not.
 
@@ -126,6 +126,46 @@ const core = await sdk.get('example', {sparse: false})
 
 // Don't auto-join the swarm for the core on init
 const core = await sdk.get('example', {autoJoin: false})
+```
+
+### sdk.getDrive()
+
+You can initialize a [Hyperdrive](https://github.com/holepunchto/hyperdrive-next) instance by passing in the same arguments as in `sdk.get()`.
+
+In addition to the usual `hyperdrive` properties, there's a new `url` property to get the `hyper://` URL for the drive to used elsewhere.
+
+Note that the drives's metadata DB's discovery key will be used for replicating if `autoJoin` is `true`.
+
+Hyperdrive is mostly useful for storing and loading files since it splits the metadata representing the file systema and the blob storage into separate cores.
+
+```JavaScript
+const drive = await sdk.getDrive('hyper://blob.mauve.moe')
+for(const path of drive.readdir('/')) {
+  const stat = drive.stat(path)
+}
+```
+
+### sdk.getBee()
+
+You can initialize a [Hyperbee](https://github.com/holepunchto/hyperbee) instance by passing the same arguments as in `sdk.get()`.
+
+In addition to the usual `hyperbee` properties, there's a new `url` property to get the `hyper://` URL for the bee to used elsewhere.
+
+Additionally, you should pass in a `keyEncoding` and a `valueEncoding` in order to control the encoding for data that's being written.
+
+Hyperbee is best used when you want to create database indexes.
+
+For an out of the box database with a proper query language, check out [HyperbeeDeeBee](https://github.com/RangerMauve/hyperbeedeebee/).
+
+```JavaScript
+const db = await sdk.getBee('example db')
+
+const db = await sdk.getBee('example db', {keyEncoding: 'utf8', valueEncoding: 'json')
+await db.put('hello', 'world')
+
+for(const entry of db.createReadStream()) {
+  console.log(entry)
+}
 ```
 
 ### sdk.resolveDNSToKey()

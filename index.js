@@ -1,6 +1,8 @@
 import HyperSwarm from 'hyperswarm'
 import CoreStore from 'corestore'
 import Hypercore from 'hypercore'
+import Hyperdrive from 'hyperdrive'
+import Hyperbee from 'hyperbee'
 import crypto from 'hypercore-crypto'
 import z32 from 'z32'
 import b4a from 'b4a'
@@ -28,10 +30,25 @@ export const DEFAULT_DNS_QUERY_OPTS = {
   endpoints: wellknown.endpoints('doh')
 }
 
-// Monkey-patching Hypercore with first class URL support
+// Monkey-patching with first class URL support
 Object.defineProperty(Hypercore.prototype, 'url', {
   get: function () {
     return `${HYPER_PROTOCOL_SCHEME}${this.id}/`
+  }
+})
+Object.defineProperty(Hyperdrive.prototype, 'url', {
+  get: function () {
+    return this.core.url
+  }
+})
+Object.defineProperty(Hyperbee.prototype, 'url', {
+  get: function () {
+    return this.feed.url
+  }
+})
+Object.defineProperty(Hyperbee.prototype, 'core', {
+  get: function () {
+    return this.feed
   }
 })
 
@@ -100,6 +117,93 @@ export class SDK extends EventEmitter {
     throw new Error(`Unable to resolve DNSLink domain for ${domain}. If you are the site operator, please add a TXT record pointing at _dnslink.${domain} with the value dnslink=/hyper/YOUR_KEY_IN_Z32_HERE`)
   }
 
+  // Resolves a string to be a key or opts and resolves DNS
+  // Useful for hypercore opts or Hyperdrive
+  async resolveNameOrKeyToOpts (nameOrKeyOrURL) {
+    // If a URL, use the hostname as either a key or a DNS to resolve
+    // If not a URL, try to decode to a key
+    // if not a key, use as name to generate a hypercore
+    // Else it's an errorW
+
+    const isKeyString = (typeof nameOrKeyOrURL === 'string')
+    if (!isKeyString) {
+    // If a 32 byte buffer, use it as the key
+      if (nameOrKeyOrURL && nameOrKeyOrURL.length === 32) {
+        return { key: nameOrKeyOrURL }
+      } else {
+        throw new Error('Must specify a name, url, or a 32 byte buffer with a key')
+      }
+    }
+
+    if (nameOrKeyOrURL.startsWith(HYPER_PROTOCOL_SCHEME)) {
+      const url = new URL(nameOrKeyOrURL)
+      // probably a domain
+      if (url.hostname.includes('.')) {
+        const resolved = await this.resolveDNSToKey(url.hostname)
+        const key = stringToKey(resolved)
+        return { key }
+      } else {
+        // Try to parse the hostname to a key
+        const key = stringToKey(url.hostname)
+        if (!key) {
+          // If not a key or a domain, throw an error
+          throw new Error('URLs must have either an encoded key or a valid DNSlink domain')
+        }
+        return { key }
+      }
+    } else {
+      const parsed = stringToKey(nameOrKeyOrURL)
+      if (parsed) {
+        return { key: parsed }
+      } else {
+        return { name: nameOrKeyOrURL }
+      }
+    }
+  }
+
+  async getBee (nameOrKeyOrURL, opts = {}) {
+    const core = await this.get(nameOrKeyOrURL, opts)
+
+    const bee = new Hyperbee(core, opts)
+
+    await bee.ready()
+
+    return bee
+  }
+
+  async getDrive (nameOrKeyOrURL, opts = {}) {
+    const coreOpts = {
+      ...this.defaultCoreOpts,
+      autoJoin: this.autoJoin,
+      ...opts
+    }
+
+    const resolvedOpts = await this.resolveNameOrKeyToOpts(nameOrKeyOrURL)
+    Object.assign(coreOpts, resolvedOpts)
+
+    let corestore = this.corestore
+
+    if (resolvedOpts.key) {
+      corestore = this.namespace(resolvedOpts.key.toString('hex'))
+    } else if (resolvedOpts.name) {
+      corestore = this.namespace(resolvedOpts.name)
+    } else {
+      throw new Error('Unable to parse')
+    }
+
+    const drive = new Hyperdrive(corestore, resolvedOpts.key || null)
+
+    await drive.ready()
+
+    const core = drive.core
+
+    if (coreOpts.autoJoin && !core.discovery) {
+      await this.joinCore(core, opts)
+    }
+
+    return drive
+  }
+
   async get (nameOrKeyOrURL, opts = {}) {
     const coreOpts = {
       ...this.defaultCoreOpts,
@@ -107,39 +211,8 @@ export class SDK extends EventEmitter {
       ...opts
     }
 
-    const isKeyString = (typeof nameOrKeyOrURL === 'string')
-
-    // If a URL, use the hostname as either a key or a DNS to resolve
-    // If not a URL, try to decode to a key
-    // if not a key, use as name to generate a hypercore
-
-    // If a 32 byte buffer, use it as the key
-    if (nameOrKeyOrURL && !isKeyString && nameOrKeyOrURL.length === 32) {
-      coreOpts.key = nameOrKeyOrURL
-    } else if (isKeyString) {
-      if (nameOrKeyOrURL.startsWith(HYPER_PROTOCOL_SCHEME)) {
-        const url = new URL(nameOrKeyOrURL)
-        // probably a domain
-        if (url.hostname.includes('.')) {
-          const resolved = await this.resolveDNSToKey(url.hostname)
-          coreOpts.key = stringToKey(resolved)
-        } else {
-          // Try to parse the hostname to a key
-          coreOpts.key = stringToKey(url.hostname)
-          if (!coreOpts.key) {
-            // If not a key or a domain, throw an error
-            throw new Error('URLs must have either an encoded key or a valid DNSlink domain')
-          }
-        }
-      } else {
-        const parsed = stringToKey(nameOrKeyOrURL)
-        if (parsed) {
-          coreOpts.key = parsed
-        } else {
-          coreOpts.name = nameOrKeyOrURL
-        }
-      }
-    }
+    const resolvedOpts = await this.resolveNameOrKeyToOpts(nameOrKeyOrURL)
+    Object.assign(coreOpts, resolvedOpts)
 
     // There shouldn't be a way to pass null for the key
     const core = this.corestore.get(coreOpts)
@@ -148,24 +221,7 @@ export class SDK extends EventEmitter {
     await core.ready()
 
     if (coreOpts.autoJoin && !core.discovery) {
-      const discovery = this.join(core.discoveryKey, opts)
-      core.discovery = discovery
-
-      // If we're the owner, then we wait until is fully announced
-      if (core.writable) {
-        await discovery.flushed()
-      }
-
-      // Await for initial peer for new readable cores
-      if (!core.writable && !core.length) {
-        const done = core.findingPeers()
-        this.swarm.flush().then(done)
-        await core.update()
-      }
-
-      core.once('close', () => {
-        discovery.destroy()
-      })
+      await this.joinCore(core, opts)
     }
 
     return core
@@ -179,6 +235,28 @@ export class SDK extends EventEmitter {
   makeTopicKey (name) {
     const [key] = crypto.namespace(name, 1)
     return key
+  }
+
+  async joinCore (core, opts = {}) {
+    if (core.discovery) return
+    const discovery = this.join(core.discoveryKey, opts)
+    core.discovery = discovery
+
+    // If we're the owner, then we wait until is fully announced
+    if (core.writable) {
+      await discovery.flushed()
+    }
+
+    // Await for initial peer for new readable cores
+    if (!core.writable && !core.length) {
+      const done = core.findingPeers()
+      this.swarm.flush().then(done)
+      await core.update()
+    }
+
+    core.once('close', () => {
+      discovery.destroy()
+    })
   }
 
   join (topic, opts = {}) {
