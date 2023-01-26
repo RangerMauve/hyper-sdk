@@ -46,11 +46,6 @@ Object.defineProperty(Hyperbee.prototype, 'url', {
     return this.feed.url
   }
 })
-Object.defineProperty(Hyperbee.prototype, 'core', {
-  get: function () {
-    return this.feed
-  }
-})
 
 export class SDK extends EventEmitter {
   constructor ({

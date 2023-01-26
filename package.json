@@ -11,7 +11,7 @@
   "scripts": {
     "test": "node test.js",
     "lint": "standard --fix",
-    "upgrade-hyper": "npm i --save corestore@latest hypercore@latest hyperswarm@latest z32@latest b4a@latest"
+    "upgrade-hyper": "npm i --save corestore@latest hypercore@latest hyperswarm@latest hyperdrive@next hyperbee@latest z32@latest b4a@latest"
   },
   "repository": {
     "type": "git",
@@ -33,10 +33,10 @@
   "homepage": "https://github.com/rangermauve/hyper-sdk#readme",
   "dependencies": {
     "b4a": "^1.6.1",
-    "corestore": "^6.4.1",
+    "corestore": "^6.4.2",
     "dns-query": "^0.11.2",
-    "hyperbee": "^2.3.0",
-    "hypercore": "^10.5.4",
+    "hyperbee": "^2.4.2",
+    "hypercore": "^10.7.0",
     "hyperdrive": "^11.0.0-alpha.10",
     "hyperswarm": "^4.3.6",
     "random-access-application": "^2.0.0",
