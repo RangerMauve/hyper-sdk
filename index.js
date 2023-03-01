@@ -38,12 +38,12 @@ Object.defineProperty(Hypercore.prototype, 'url', {
 })
 Object.defineProperty(Hyperdrive.prototype, 'url', {
   get: function () {
-    return this.core.url
+    return `${HYPER_PROTOCOL_SCHEME}${this.core.id}/`
   }
 })
 Object.defineProperty(Hyperbee.prototype, 'url', {
   get: function () {
-    return this.feed.url
+    return `${HYPER_PROTOCOL_SCHEME}${this.feed.id}/`
   }
 })
 
