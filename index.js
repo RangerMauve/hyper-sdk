@@ -107,7 +107,13 @@ export class SDK extends EventEmitter {
       const [raw] = data
       if (!raw) return
       const asString = raw.toString('utf8')
-      if (asString.startsWith(this.dnsLinkPrefix)) return asString.slice(this.dnsLinkPrefix.length)
+      if (asString.startsWith(this.dnsLinkPrefix)) {
+        if(asString.endsWith('/')) {
+          return asString.slice(this.dnsLinkPrefix.length, -1)
+        }
+        return asString.slice(this.dnsLinkPrefix.length)
+      }
+
     }
     throw new Error(`Unable to resolve DNSLink domain for ${domain}. If you are the site operator, please add a TXT record pointing at _dnslink.${domain} with the value dnslink=/hyper/YOUR_KEY_IN_Z32_HERE`)
   }
