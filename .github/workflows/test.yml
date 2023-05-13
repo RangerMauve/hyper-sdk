@@ -4,10 +4,12 @@ on: [ push, pull_request ]
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
     strategy:
       matrix:
         node: [ '18' ]
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
     name: Node ${{ matrix.node }} sample
     steps:
       - uses: actions/checkout@v2
