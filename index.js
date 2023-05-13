@@ -10,6 +10,7 @@ import RAA from 'random-access-application'
 import RAM from 'random-access-memory'
 import { query, wellknown } from 'dns-query'
 import { EventEmitter } from 'events'
+import path from 'node:path'
 
 // TODO: Base36 encoding/decoding for URLs instead of hex
 
@@ -108,12 +109,11 @@ export class SDK extends EventEmitter {
       if (!raw) return
       const asString = raw.toString('utf8')
       if (asString.startsWith(this.dnsLinkPrefix)) {
-        if(asString.endsWith('/')) {
+        if (asString.endsWith('/')) {
           return asString.slice(this.dnsLinkPrefix.length, -1)
         }
         return asString.slice(this.dnsLinkPrefix.length)
       }
-
     }
     throw new Error(`Unable to resolve DNSLink domain for ${domain}. If you are the site operator, please add a TXT record pointing at _dnslink.${domain} with the value dnslink=/hyper/YOUR_KEY_IN_Z32_HERE`)
   }
@@ -310,9 +310,7 @@ export async function create ({
 } = {}) {
   const isStringStorage = typeof storage === 'string'
   const isPathStorage = isStringStorage && (
-    storage.startsWith('.') ||
-     storage.startsWith('/') ||
-     storage.startsWith('\\')
+    storage.startsWith('.') || path.isAbsolute(storage)
   )
 
   let storageBackend = storage

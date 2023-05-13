@@ -208,7 +208,7 @@ test('Get a hyperbee and share a key value pair', async (t) => {
     const db2 = await sdk2.getBee(db1.url, encodingOpts)
     t.equal(db2.url, db1.url, 'Loaded bee has same URL')
 
-    const {value} = await db2.get('hello')
+    const { value } = await db2.get('hello')
 
     t.equal(value, 'world', 'Got value for key')
   } finally {
