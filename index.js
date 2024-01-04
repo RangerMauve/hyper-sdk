@@ -63,6 +63,11 @@ export class SDK extends EventEmitter {
     this.swarm = swarm
     this.corestore = corestore
 
+    // These probably shouldn't be accessed
+    this.coreCache = new Map()
+    this.beeCache = new Map()
+    this.driveCache = new Map()
+
     this.dnsLinkPrefix = dnsLinkPrefix
     this.defaultCoreOpts = defaultCoreOpts
     this.defaultJoinOpts = defaultJoinOpts
@@ -92,7 +97,7 @@ export class SDK extends EventEmitter {
   }
 
   get cores () {
-    return this.corestore.cores
+    return [...this._cores.values()]
   }
 
   async resolveDNSToKey (domain, opts = {}) {
@@ -165,7 +170,17 @@ export class SDK extends EventEmitter {
   async getBee (nameOrKeyOrURL, opts = {}) {
     const core = await this.get(nameOrKeyOrURL, opts)
 
+    if (this.beeCache.has(core.url)) {
+      return this.beeCache.get(core.url)
+    }
+
     const bee = new Hyperbee(core, opts)
+
+    core.once('close', () => {
+      this.beeCache.delete(core.url)
+    })
+
+    this.beeCache.set(core.url, bee)
 
     await bee.ready()
 
@@ -180,23 +195,42 @@ export class SDK extends EventEmitter {
     }
 
     const resolvedOpts = await this.resolveNameOrKeyToOpts(nameOrKeyOrURL)
+
+    const { key, name } = resolvedOpts
+    let stringKey = key && key.toString('hex')
+
+    if (this.driveCache.has(name)) {
+      return this.driveCache.get(name)
+    } else if (this.driveCache.has(stringKey)) {
+      return this.driveCache.get(stringKey)
+    }
+
     Object.assign(coreOpts, resolvedOpts)
 
     let corestore = this.corestore
 
     if (resolvedOpts.key) {
-      corestore = this.namespace(resolvedOpts.key.toString('hex'))
+      corestore = this.namespace(stringKey)
     } else if (resolvedOpts.name) {
-      corestore = this.namespace(resolvedOpts.name)
+      corestore = this.namespace(name)
     } else {
       throw new Error('Unable to parse')
     }
 
-    const drive = new Hyperdrive(corestore, resolvedOpts.key || null)
+    const drive = new Hyperdrive(corestore, key || null)
 
     await drive.ready()
 
     const core = drive.core
+    stringKey = core.key.toString('hex')
+
+    drive.once('close', () => {
+      this.driveCache.delete(stringKey)
+      this.driveCache.delete(name)
+    })
+
+    this.driveCache.set(stringKey, drive)
+    if (name) this.driveCache.set(name, drive)
 
     if (coreOpts.autoJoin && !core.discovery) {
       await this.joinCore(core, opts)
@@ -213,6 +247,16 @@ export class SDK extends EventEmitter {
     }
 
     const resolvedOpts = await this.resolveNameOrKeyToOpts(nameOrKeyOrURL)
+
+    const { key, name } = resolvedOpts
+    let stringKey = key && key.toString('hex')
+
+    if (this.coreCache.has(name)) {
+      return this.coreCache.get(name)
+    } else if (this.coreCache.has(stringKey)) {
+      return this.coreCache.get(stringKey)
+    }
+
     Object.assign(coreOpts, resolvedOpts)
 
     // There shouldn't be a way to pass null for the key
@@ -220,6 +264,16 @@ export class SDK extends EventEmitter {
 
     // Await for core to be ready
     await core.ready()
+
+    core.once('close', () => {
+      this.coreCache.delete(stringKey)
+      this.coreCache.delete(name)
+    })
+
+    stringKey = core.key.toString('hex')
+
+    this.coreCache.set(stringKey, core)
+    if (name) this.coreCache.set(name, core)
 
     if (coreOpts.autoJoin && !core.discovery) {
       await this.joinCore(core, opts)

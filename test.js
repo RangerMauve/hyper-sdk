@@ -78,6 +78,42 @@ test('Load hypercores by names and urls', async (t) => {
   }
 })
 
+test('Loading same key twice results in same core', async (t) => {
+  const sdk = await create({ storage: false })
+  const name = 'example'
+
+  try {
+    const core1 = await sdk.get(name)
+    const core2 = await sdk.get(core1.key)
+    const core3 = await sdk.get(core1.url)
+    t.equal(core1, core2, 'Key loaded same core from memory')
+    t.equal(core1, core3, 'URL loaded same core from memory')
+
+    const drive1 = await sdk.getDrive(name)
+    const drive2 = await sdk.getDrive(drive1.key)
+    const drive3 = await sdk.getDrive(drive1.url)
+    t.equal(drive1, drive2, 'Key loaded same drive from memory')
+    t.equal(drive1, drive3, 'URL loaded same drive from memory')
+
+    const bee1 = await sdk.getBee(name)
+    const bee2 = await sdk.getBee(bee1.key)
+    const bee3 = await sdk.getBee(bee1.url)
+    t.equal(bee1, bee2, 'Key loaded same bee from memory')
+    t.equal(bee1, bee3, 'URL loaded same bee from memory')
+
+    await core1.close()
+    await drive1.close()
+    const core4 = await sdk.get(name)
+    t.notEquals(core1, core4, 'New core after close')
+    const drive4 = await sdk.getDrive(name)
+    t.notEquals(drive1, drive4, 'New drive after close')
+    const bee4 = await sdk.getBee(name)
+    t.notEquals(bee1, bee4, 'New bee after close')
+  } finally {
+    await sdk.close()
+  }
+})
+
 test('Resolve DNS entries to keys', async (t) => {
   const expected = NULL_KEY
 
