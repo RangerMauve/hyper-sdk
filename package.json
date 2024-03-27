@@ -40,7 +40,7 @@
     "hyperdrive": "^11.8.1",
     "hyperswarm": "^4.7.14",
     "random-access-application": "^2.0.0",
-    "random-access-memory": "^6.1.0",
+    "random-access-memory": "^6.2.0",
     "z32": "^1.0.1"
   },
   "devDependencies": {
