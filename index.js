@@ -371,7 +371,7 @@ export async function create ({
   if (isStringStorage && !isPathStorage) {
     storageBackend = RAA(storage)
   } else if (storage === false) {
-    storageBackend = RAM
+    storageBackend = RAM.reusable()
   }
 
   const corestore = opts.corestore || new CoreStore(storageBackend, { ...corestoreOpts })

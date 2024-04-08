@@ -50,6 +50,22 @@ test('Specify storage for sdk', async (t) => {
   }, { unsafeCleanup: true })
 })
 
+test('Support storage reuse by default', async (t) => {
+  const sdk = await create({ storage: false })
+  const core = await sdk.get('persist in memory')
+  const key = core.key
+
+  const data = b4a.from('beep')
+  await core.append(data)
+  await core.close()
+  t.ok(core.closed, 'initial core was closed')
+
+  const coreAgain = await sdk.get(key)
+  t.deepEqual(await coreAgain.get(0, { wait: false }), data, 'found persisted data')
+
+  await sdk.close()
+})
+
 test('Load hypercores by names and urls', async (t) => {
   const sdk = await create({ storage: false })
   const name = 'example'
