@@ -8,6 +8,17 @@
       "default": "./index.js"
     }
   },
+  "imports": {
+    "path": {
+      "default": "bare-path"
+    },
+    "events": {
+      "default": "bare-events"
+    },
+    "stream": {
+      "default": "bare-stream"
+    }
+  },
   "scripts": {
     "test": "node test.js",
     "lint": "standard --fix",
@@ -33,6 +44,11 @@
   "homepage": "https://github.com/rangermauve/hyper-sdk#readme",
   "dependencies": {
     "b4a": "^1.6.7",
+    "bare-events": "^2.5.0",
+    "bare-fetch": "^2.2.0",
+    "bare-os": "^3.3.0",
+    "bare-path": "^3.0.0",
+    "bare-stream": "^2.6.1",
     "corestore": "^6.18.4",
     "dns-query": "^0.11.2",
     "hyperbee": "^2.20.4",
@@ -42,9 +58,12 @@
     "hyperswarm": "^4.8.4",
     "random-access-application": "^2.0.0",
     "random-access-memory": "^6.2.0",
+    "random-access-storage": "^3.0.2",
+    "test-tmp": "^1.4.0",
     "z32": "^1.1.0"
   },
   "devDependencies": {
+    "brittle": "^3.7.0",
     "standard": "^17.0.0",
     "tape": "^5.6.1",
     "tmp-promise": "^3.0.3"

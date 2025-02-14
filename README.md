@@ -12,8 +12,9 @@ The Hyper SDK combines the lower level pieces of the Hyper stack into high level
 
 - High level API
 - Cross-platform with same codebase
-  - ✔ Node
-  - ✔ Electron
+  - ✔ [Node.js](https://nodejs.org/en)
+  - ✔ [Electron](https://www.electronjs.org/)
+  - ✔ [Pear](https://docs.pears.com/)
   - 🏗️ Web (PRs welcome)
 
 ## Installation
@@ -173,6 +174,8 @@ for(const entry of db.createReadStream()) {
 You can manually resolve DNS addresses to hypercore keys on domains using the DNS Link spec with this method.
 
 However, it's not mandatory to use DNS since `sdk.get()` will automatically detect and perform resolutions of DNS for `hyper://` URLs.
+
+Hyper-SDK currently bypasses the OS DNS resolver and uses DNS Over HTTPS. You can configure your own using the `dnsResolver` config option and any of the options [on this list](https://dnsprivacy.org/public_resolvers/#dns-over-https-doh). By default we use the one provided by [Mozilla](https://developers.cloudflare.com/1.1.1.1/commitment-to-privacy/privacy-policy/firefox/).
 
 ```JavaScript
 const key = await sdk.resolveDNSToKey('example.mauve.moe')

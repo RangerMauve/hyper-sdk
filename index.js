@@ -6,16 +6,14 @@ import Hyperbee from 'hyperbee'
 import crypto from 'hypercore-crypto'
 import z32 from 'z32'
 import b4a from 'b4a'
-import RAA from 'random-access-application'
 import RAM from 'random-access-memory'
-import { query, wellknown } from 'dns-query'
+import RAS from 'random-access-storage'
 import { EventEmitter } from 'events'
-import path from 'node:path'
+import path from 'path'
 
 // TODO: Base36 encoding/decoding for URLs instead of hex
 
 export const HYPER_PROTOCOL_SCHEME = 'hyper://'
-export const DNSLINK_TXT_PREFIX = 'dnslink=/hyper/'
 export const DEFAULT_CORE_OPTS = {
   sparse: true
 }
@@ -26,9 +24,6 @@ export const DEFAULT_JOIN_OPTS = {
 export const DEFAULT_CORESTORE_OPTS = {
 }
 export const DEFAULT_SWARM_OPTS = {
-}
-export const DEFAULT_DNS_QUERY_OPTS = {
-  endpoints: wellknown.endpoints('doh')
 }
 
 // Monkey-patching with first class URL support
@@ -48,14 +43,17 @@ Object.defineProperty(Hyperbee.prototype, 'url', {
   }
 })
 
+const DEFAULT_DNS_RESOLVER = 'https://mozilla.cloudflare-dns.com/dns-query'
+
+const DNSLINK_PREFIX = 'dnslink=/hyper/'
+
 export class SDK extends EventEmitter {
   constructor ({
     swarm = throwMissing('swarm'),
     corestore = throwMissing('corestore'),
-    dnsLinkPrefix = DNSLINK_TXT_PREFIX,
     defaultCoreOpts = DEFAULT_CORE_OPTS,
     defaultJoinOpts = DEFAULT_JOIN_OPTS,
-    defaultDNSOpts = DEFAULT_DNS_QUERY_OPTS,
+    dnsResolver = DEFAULT_DNS_RESOLVER,
     autoJoin = true,
     doReplicate = true
   } = {}) {
@@ -68,10 +66,9 @@ export class SDK extends EventEmitter {
     this.beeCache = new Map()
     this.driveCache = new Map()
 
-    this.dnsLinkPrefix = dnsLinkPrefix
     this.defaultCoreOpts = defaultCoreOpts
     this.defaultJoinOpts = defaultJoinOpts
-    this.defaultDNSOpts = defaultDNSOpts
+    this.dnsResolver = dnsResolver
 
     this.autoJoin = autoJoin
 
@@ -100,27 +97,39 @@ export class SDK extends EventEmitter {
     return [...this._cores.values()]
   }
 
-  async resolveDNSToKey (domain, opts = {}) {
-    const finalOpts = { ...this.defaultDNSOpts, ...opts }
-    const name = `_dnslink.${domain}`
-
-    const { answers } = await query({
-      question: { type: 'txt', name }
-    }, finalOpts)
-
-    for (const { data } of answers) {
-      if (!data || !data.length) continue
-      const [raw] = data
-      if (!raw) return
-      const asString = raw.toString('utf8')
-      if (asString.startsWith(this.dnsLinkPrefix)) {
-        if (asString.endsWith('/')) {
-          return asString.slice(this.dnsLinkPrefix.length, -1)
-        }
-        return asString.slice(this.dnsLinkPrefix.length)
-      }
+  // TODO: Cache for offline use
+  async resolveDNSToKey (hostname) {
+    if (!globalThis.fetch) {
+      globalThis.fetch = (await import('bare-fetch')).default
     }
-    throw new Error(`Unable to resolve DNSLink domain for ${domain}. If you are the site operator, please add a TXT record pointing at _dnslink.${domain} with the value dnslink=/hyper/YOUR_KEY_IN_Z32_HERE`)
+    const subdomained = `_dnslink.${hostname}`
+
+    const url = `${this.dnsResolver}?name=${subdomained}&type=TXT`
+
+    const response = await fetch(url, {
+      headers: { accept: 'application/dns-json' }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Unable to resolve DoH for ${hostname} ${await response.text()}`)
+    }
+
+    const { Answer: answers } = await response.json()
+
+    for (let { name, data } of answers) {
+      if (name !== subdomained || !data) {
+        continue
+      }
+      if (data.startsWith('"')) {
+        data = data.slice(1, -1)
+      }
+      if (!data.startsWith(DNSLINK_PREFIX)) {
+        continue
+      }
+      return data.slice(DNSLINK_PREFIX.length)
+    }
+
+    throw new Error(`DNS-Link Record not found for TXT ${subdomained}`)
   }
 
   // Resolves a string to be a key or opts and resolves DNS
@@ -145,9 +154,9 @@ export class SDK extends EventEmitter {
       const url = new URL(nameOrKeyOrURL)
       // probably a domain
       if (url.hostname.includes('.')) {
-        const resolved = await this.resolveDNSToKey(url.hostname)
-        const key = stringToKey(resolved)
-        return { key }
+        const key = await this.resolveDNSToKey(url.hostname)
+
+        return { key: stringToKey(key) }
       } else {
         // Try to parse the hostname to a key
         const key = stringToKey(url.hostname)
@@ -357,7 +366,7 @@ export class SDK extends EventEmitter {
 }
 
 export async function create ({
-  storage = 'hyper-sdk',
+  storage = './hyper-sdk',
   corestoreOpts = DEFAULT_CORESTORE_OPTS,
   swarmOpts = DEFAULT_SWARM_OPTS,
   ...opts
@@ -369,7 +378,7 @@ export async function create ({
 
   let storageBackend = storage
   if (isStringStorage && !isPathStorage) {
-    storageBackend = RAA(storage)
+    storageBackend = RAS(storage)
   } else if (storage === false) {
     storageBackend = RAM.reusable()
   }
