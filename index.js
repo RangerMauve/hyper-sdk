@@ -126,7 +126,7 @@ export class SDK extends EventEmitter {
       if (!data.startsWith(DNSLINK_PREFIX)) {
         continue
       }
-      return data.slice(DNSLINK_PREFIX.length)
+      return data.split('/')[2]
     }
 
     throw new Error(`DNS-Link Record not found for TXT ${subdomained}`)
