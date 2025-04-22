@@ -6,16 +6,12 @@ import Hyperbee from 'hyperbee'
 import crypto from 'hypercore-crypto'
 import z32 from 'z32'
 import b4a from 'b4a'
-import RAM from 'random-access-memory'
-import RAS from 'random-access-storage'
 import { EventEmitter } from 'events'
-import path from 'path'
 
 // TODO: Base36 encoding/decoding for URLs instead of hex
 
 export const HYPER_PROTOCOL_SCHEME = 'hyper://'
 export const DEFAULT_CORE_OPTS = {
-  sparse: true
 }
 export const DEFAULT_JOIN_OPTS = {
   server: true,
@@ -371,19 +367,8 @@ export async function create ({
   swarmOpts = DEFAULT_SWARM_OPTS,
   ...opts
 } = {}) {
-  const isStringStorage = typeof storage === 'string'
-  const isPathStorage = isStringStorage && (
-    storage.startsWith('.') || path.isAbsolute(storage)
-  )
-
-  let storageBackend = storage
-  if (isStringStorage && !isPathStorage) {
-    storageBackend = RAS(storage)
-  } else if (storage === false) {
-    storageBackend = RAM.reusable()
-  }
-
-  const corestore = opts.corestore || new CoreStore(storageBackend, { ...corestoreOpts })
+  // TODO: Account for "random-access-application" style storage
+  const corestore = opts.corestore || new CoreStore(storage, { ...corestoreOpts })
 
   const networkKeypair = await corestore.createKeyPair('noise')
 

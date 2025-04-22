@@ -50,7 +50,9 @@ test('Specify storage for sdk', async (t) => {
 })
 
 test('Support storage reuse by default', async (t) => {
-  const sdk = await create({ storage: false })
+  const storage = await tmp()
+
+  const sdk = await create({ storage })
   const core = await sdk.get('persist in memory')
   const key = core.key
 
@@ -66,7 +68,9 @@ test('Support storage reuse by default', async (t) => {
 })
 
 test('Load hypercores by names and urls', async (t) => {
-  const sdk = await create({ storage: false })
+  const storage = await tmp()
+
+  const sdk = await create({ storage })
   const name = 'example'
 
   try {
@@ -94,7 +98,9 @@ test('Load hypercores by names and urls', async (t) => {
 })
 
 test('Loading same key twice results in same core', async (t) => {
-  const sdk = await create({ storage: false })
+  const storage = await tmp()
+
+  const sdk = await create({ storage })
   const name = 'example'
 
   try {
@@ -130,9 +136,11 @@ test('Loading same key twice results in same core', async (t) => {
 })
 
 test('Resolve DNS entries to keys', async (t) => {
+  const storage = await tmp()
+
   const expected = NULL_KEY
 
-  const sdk = await create({ storage: false })
+  const sdk = await create({ storage })
 
   try {
     const resolved = await sdk.resolveDNSToKey('example.mauve.moe')
@@ -144,9 +152,11 @@ test('Resolve DNS entries to keys', async (t) => {
 })
 
 test.skip('Resolve DNS in hyper URLs', async (t) => {
+  const storage = await tmp()
+
   const expected = NULL_KEY
 
-  const sdk = await create({ storage: false })
+  const sdk = await create({ storage })
 
   try {
     const core = await sdk.get('hyper://example.mauve.moe')
@@ -158,8 +168,11 @@ test.skip('Resolve DNS in hyper URLs', async (t) => {
 })
 
 test('Load a core between two peers', { timeout }, async (t) => {
-  const sdk1 = await create({ storage: false })
-  const sdk2 = await create({ storage: false })
+  const storage1 = await tmp()
+  const storage2 = await tmp()
+
+  const sdk1 = await create({ storage: storage1 })
+  const sdk2 = await create({ storage: storage2 })
   try {
     t.comment('Initializing core on first peer')
 
@@ -185,8 +198,11 @@ test('Load a core between two peers', { timeout }, async (t) => {
 })
 
 test('Connect directly between two peers', { timeout }, async (t) => {
-  const sdk1 = await create({ storage: false })
-  const sdk2 = await create({ storage: false })
+  const storage1 = await tmp()
+  const storage2 = await tmp()
+
+  const sdk1 = await create({ storage: storage1 })
+  const sdk2 = await create({ storage: storage2 })
 
   const onPeer = once(sdk2, 'peer-add')
   const onPeernt = once(sdk2, 'peer-remove')
@@ -209,8 +225,12 @@ test('Connect directly between two peers', { timeout }, async (t) => {
 })
 
 test('Get a hyperdrive and share a file', async (t) => {
-  const sdk1 = await create({ storage: false })
-  const sdk2 = await create({ storage: false })
+  const storage1 = await tmp()
+  const storage2 = await tmp()
+
+  const sdk1 = await create({ storage: storage1 })
+  const sdk2 = await create({ storage: storage2 })
+
   try {
     const drive1 = await sdk1.getDrive('example')
 
@@ -244,8 +264,12 @@ test('Get a hyperdrive and share a file', async (t) => {
 })
 
 test('Get a hyperbee and share a key value pair', async (t) => {
-  const sdk1 = await create({ storage: false })
-  const sdk2 = await create({ storage: false })
+  const storage1 = await tmp()
+  const storage2 = await tmp()
+
+  const sdk1 = await create({ storage: storage1 })
+  const sdk2 = await create({ storage: storage2 })
+
   try {
     const encodingOpts = { keyEncoding: 'utf8', valueEncoding: 'utf8' }
     const db1 = await sdk1.getBee('example', encodingOpts)

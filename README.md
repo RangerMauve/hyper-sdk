@@ -40,7 +40,6 @@ const sdk = await SDK.create({
   // Regular strings will be passed to `random-access-application` to store in your user directory
   // On web this will use `random-access-web` to choose the best storage based on the browser
   // You can specify an absolute or relative path `./example/` to choose where to store data
-  // You can specify `false` to not persist data at all and do everything in-memory
   storage: 'hyper-sdk',
 
   // This controls whether the SDK will automatically start swarming when loading a core via `get`
@@ -100,8 +99,6 @@ sdk.on('peer-add', (peerInfo) => {
 
 You can initialize a [Hypercore](https://github.com/hypercore-protocol/hypercore) instance by passing in a key, a name to derive a key from, or a URL containing either a key or a DNS name.
 
-You can also pass additional options for whether the hypercore should be replicated as sparse or not.
-
 Unlike corestore, you may not initialize a hypercore from a `null` key since everything must be derivable or loadable.
 
 Unless `autoJoin` is set to `false`, the peer discovery will be automatically started for the core.
@@ -121,9 +118,6 @@ const core = await sdk.get('hyper://00000000000000000000000000000000000000000000
 
 // z32 encoded, equivalent to 32 bytes of zeros
 const core = await sdk.get('hyper://yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy')
-
-// Disable sparse mode in order to download everything from peers
-const core = await sdk.get('example', {sparse: false})
 
 // Don't auto-join the swarm for the core on init
 const core = await sdk.get('example', {autoJoin: false})
@@ -223,8 +217,8 @@ sdk.leave("cool cat videos")
 ### sdk.joinPeer() / sdk.leavePeer()
 
 ```JavaScript
-const sdk1 = await SDK.create({persist: false})
-const sdk2 = await SDK.create({persist: false})
+const sdk1 = await SDK.create({storage: './sdk1'})
+const sdk2 = await SDK.create({storage: './sdk1'})
 
 sdk1.joinPeer(sdk2.publicKey)
 ```
