@@ -7,6 +7,8 @@ import crypto from 'hypercore-crypto'
 import z32 from 'z32'
 import b4a from 'b4a'
 import { EventEmitter } from 'events'
+import { join } from 'path'
+import RocksDB from 'rocksdb-native'
 
 // TODO: Base36 encoding/decoding for URLs instead of hex
 
@@ -44,9 +46,23 @@ const DEFAULT_DNS_RESOLVER = 'https://mozilla.cloudflare-dns.com/dns-query'
 const DNSLINK_PREFIX = 'dnslink=/hyper/'
 
 export class SDK extends EventEmitter {
+  #fetch
+  #dnsCache
+  #dnsMemoryCache
+  #defaultCoreOpts
+  #defaultJoinOpts
+  #dnsResolver
+  #swarm
+  #corestore
+  #coreCache
+  #beeCache
+  #driveCache
+
   constructor ({
     swarm = throwMissing('swarm'),
     corestore = throwMissing('corestore'),
+    dnsCache = throwMissing('dnsCache'),
+    fetch = globalThis.fetch,
     defaultCoreOpts = DEFAULT_CORE_OPTS,
     defaultJoinOpts = DEFAULT_JOIN_OPTS,
     dnsResolver = DEFAULT_DNS_RESOLVER,
@@ -54,17 +70,20 @@ export class SDK extends EventEmitter {
     doReplicate = true
   } = {}) {
     super()
-    this.swarm = swarm
-    this.corestore = corestore
+    this.#swarm = swarm
+    this.#corestore = corestore
+    this.#dnsCache = dnsCache
+    this.#fetch = fetch
 
     // These probably shouldn't be accessed
-    this.coreCache = new Map()
-    this.beeCache = new Map()
-    this.driveCache = new Map()
+    this.#dnsMemoryCache = new Map()
+    this.#coreCache = new Map()
+    this.#beeCache = new Map()
+    this.#driveCache = new Map()
 
-    this.defaultCoreOpts = defaultCoreOpts
-    this.defaultJoinOpts = defaultJoinOpts
-    this.dnsResolver = dnsResolver
+    this.#defaultCoreOpts = defaultCoreOpts
+    this.#defaultJoinOpts = defaultJoinOpts
+    this.#dnsResolver = dnsResolver
 
     this.autoJoin = autoJoin
 
@@ -75,6 +94,14 @@ export class SDK extends EventEmitter {
         this.replicate(connection)
       })
     }
+  }
+
+  get swarm () {
+    return this.#swarm
+  }
+
+  get corestore () {
+    return this.#corestore
   }
 
   get publicKey () {
@@ -90,27 +117,40 @@ export class SDK extends EventEmitter {
   }
 
   get cores () {
-    return [...this._cores.values()]
+    return [...this.#coreCache.values()]
   }
 
-  // TODO: Cache for offline use
   async resolveDNSToKey (hostname) {
-    if (!globalThis.fetch) {
-      globalThis.fetch = (await import('bare-fetch')).default
+    // TODO: Check for TTL?
+    if (this.#dnsMemoryCache.has(hostname)) {
+      return this.#dnsMemoryCache.get(hostname)
     }
+
+    const fetch = this.#fetch
+
     const subdomained = `_dnslink.${hostname}`
 
-    const url = `${this.dnsResolver}?name=${subdomained}&type=TXT`
+    const url = `${this.#dnsResolver}?name=${subdomained}&type=TXT`
 
-    const response = await fetch(url, {
-      headers: { accept: 'application/dns-json' }
-    })
+    let answers = null
+    try {
+      const response = await fetch(url, {
+        headers: { accept: 'application/dns-json' }
+      })
 
-    if (!response.ok) {
-      throw new Error(`Unable to resolve DoH for ${hostname} ${await response.text()}`)
+      if (!response.ok) {
+        throw new Error(`Unable to resolve DoH for ${hostname} ${await response.text()}`)
+      }
+
+      const dnsResults = await response.json()
+      answers = dnsResults.Answer
+      await this.#dnsCache.put(hostname, JSON.stringify(dnsResults))
+    } catch (e) {
+      const cached = await this.#dnsCache.get(hostname)
+      if (cached) {
+        answers = JSON.parse(cached).Answer
+      }
     }
-
-    const { Answer: answers } = await response.json()
 
     for (let { name, data } of answers) {
       if (name !== subdomained || !data) {
@@ -122,7 +162,9 @@ export class SDK extends EventEmitter {
       if (!data.startsWith(DNSLINK_PREFIX)) {
         continue
       }
-      return data.split('/')[2]
+      const key = data.split('/')[2]
+      this.#dnsMemoryCache.set(hostname, key)
+      return key
     }
 
     throw new Error(`DNS-Link Record not found for TXT ${subdomained}`)
@@ -175,17 +217,17 @@ export class SDK extends EventEmitter {
   async getBee (nameOrKeyOrURL, opts = {}) {
     const core = await this.get(nameOrKeyOrURL, opts)
 
-    if (this.beeCache.has(core.url)) {
-      return this.beeCache.get(core.url)
+    if (this.#beeCache.has(core.url)) {
+      return this.#beeCache.get(core.url)
     }
 
     const bee = new Hyperbee(core, opts)
 
     core.once('close', () => {
-      this.beeCache.delete(core.url)
+      this.#beeCache.delete(core.url)
     })
 
-    this.beeCache.set(core.url, bee)
+    this.#beeCache.set(core.url, bee)
 
     await bee.ready()
 
@@ -194,7 +236,7 @@ export class SDK extends EventEmitter {
 
   async getDrive (nameOrKeyOrURL, opts = {}) {
     const coreOpts = {
-      ...this.defaultCoreOpts,
+      ...this.#defaultCoreOpts,
       autoJoin: this.autoJoin,
       ...opts
     }
@@ -204,10 +246,10 @@ export class SDK extends EventEmitter {
     const { key, name } = resolvedOpts
     let stringKey = key && key.toString('hex')
 
-    if (this.driveCache.has(name)) {
-      return this.driveCache.get(name)
-    } else if (this.driveCache.has(stringKey)) {
-      return this.driveCache.get(stringKey)
+    if (this.#driveCache.has(name)) {
+      return this.#driveCache.get(name)
+    } else if (this.#driveCache.has(stringKey)) {
+      return this.#driveCache.get(stringKey)
     }
 
     Object.assign(coreOpts, resolvedOpts)
@@ -230,12 +272,12 @@ export class SDK extends EventEmitter {
     stringKey = core.key.toString('hex')
 
     drive.once('close', () => {
-      this.driveCache.delete(stringKey)
-      this.driveCache.delete(name)
+      this.#driveCache.delete(stringKey)
+      this.#driveCache.delete(name)
     })
 
-    this.driveCache.set(stringKey, drive)
-    if (name) this.driveCache.set(name, drive)
+    this.#driveCache.set(stringKey, drive)
+    if (name) this.#driveCache.set(name, drive)
 
     if (coreOpts.autoJoin && !core.discovery) {
       await this.joinCore(core, opts)
@@ -246,7 +288,7 @@ export class SDK extends EventEmitter {
 
   async get (nameOrKeyOrURL, opts = {}) {
     const coreOpts = {
-      ...this.defaultCoreOpts,
+      ...this.#defaultCoreOpts,
       autoJoin: this.autoJoin,
       ...opts
     }
@@ -256,10 +298,10 @@ export class SDK extends EventEmitter {
     const { key, name } = resolvedOpts
     let stringKey = key && key.toString('hex')
 
-    if (this.coreCache.has(name)) {
-      return this.coreCache.get(name)
-    } else if (this.coreCache.has(stringKey)) {
-      return this.coreCache.get(stringKey)
+    if (this.#coreCache.has(name)) {
+      return this.#coreCache.get(name)
+    } else if (this.#coreCache.has(stringKey)) {
+      return this.#coreCache.get(stringKey)
     }
 
     Object.assign(coreOpts, resolvedOpts)
@@ -271,14 +313,14 @@ export class SDK extends EventEmitter {
     await core.ready()
 
     core.once('close', () => {
-      this.coreCache.delete(stringKey)
-      this.coreCache.delete(name)
+      this.#coreCache.delete(stringKey)
+      this.#coreCache.delete(name)
     })
 
     stringKey = core.key.toString('hex')
 
-    this.coreCache.set(stringKey, core)
-    if (name) this.coreCache.set(name, core)
+    this.#coreCache.set(stringKey, core)
+    if (name) this.#coreCache.set(name, core)
 
     if (coreOpts.autoJoin && !core.discovery) {
       await this.joinCore(core, opts)
@@ -349,10 +391,12 @@ export class SDK extends EventEmitter {
   }
 
   async close () {
+    await this.#dnsCache.flush()
     // Close corestore, close hyperswarm
     await Promise.all([
       this.corestore.close(),
-      this.swarm.destroy()
+      this.swarm.destroy(),
+      this.#dnsCache.close()
     ])
   }
 
@@ -365,10 +409,12 @@ export async function create ({
   storage = './hyper-sdk',
   corestoreOpts = DEFAULT_CORESTORE_OPTS,
   swarmOpts = DEFAULT_SWARM_OPTS,
+  fetch = globalThis.fetch,
   ...opts
 } = {}) {
   // TODO: Account for "random-access-application" style storage
   const corestore = opts.corestore || new CoreStore(storage, { ...corestoreOpts })
+  const dnsCache = opts.dnsCache || new RocksDB(join(storage, 'dnsCache'))
 
   const networkKeypair = await corestore.createKeyPair('noise')
 
@@ -378,9 +424,11 @@ export async function create ({
   })
 
   const sdk = new SDK({
-    swarm,
+    ...opts,
+    fetch: fetch || (await import('bare-fetch')).default,
     corestore,
-    ...opts
+    swarm,
+    dnsCache
   })
 
   await sdk.ready()

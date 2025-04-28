@@ -14,10 +14,15 @@
     },
     "stream": {
       "default": "bare-stream"
+    },
+    "path": {
+      "default": "bare-path"
     }
   },
   "scripts": {
-    "test": "node test.js",
+    "test": "npm run test:node && npm run test:bare",
+    "test:bare": "bare test.js",
+    "test:node": "node test.js",
     "lint": "standard --fix",
     "upgrade-hyper": "npm i --save corestore@latest hypercore@latest hyperswarm@latest hyperdrive@latest hyperbee@latest hypercore-protocol@latest z32@latest b4a@latest bare-events@latest bare-fetch@latest bare-os@latest bare-path@latest bare-stream@latest"
   },
@@ -44,6 +49,7 @@
     "bare-events": "^2.5.4",
     "bare-fetch": "^2.2.2",
     "bare-os": "^3.6.1",
+    "bare-path": "^3.0.0",
     "bare-stream": "^2.6.5",
     "corestore": "^7.4.0",
     "dns-query": "^0.11.2",
@@ -52,10 +58,12 @@
     "hypercore-protocol": "^8.0.7",
     "hyperdrive": "^12.2.0",
     "hyperswarm": "^4.11.5",
+    "rocksdb-native": "^3.5.10",
     "test-tmp": "^1.4.0",
     "z32": "^1.1.0"
   },
   "devDependencies": {
+    "bare": "^1.17.6",
     "brittle": "^3.7.0",
     "standard": "^17.0.0",
     "tape": "^5.6.1",

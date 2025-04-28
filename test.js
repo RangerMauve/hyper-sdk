@@ -151,7 +151,7 @@ test('Resolve DNS entries to keys', async (t) => {
   }
 })
 
-test.skip('Resolve DNS in hyper URLs', async (t) => {
+test('Resolve DNS in hyper URLs', async (t) => {
   const storage = await tmp()
 
   const expected = NULL_KEY
@@ -162,6 +162,43 @@ test.skip('Resolve DNS in hyper URLs', async (t) => {
     const core = await sdk.get('hyper://example.mauve.moe')
 
     t.is(core.id, expected, 'Loaded correct core from DNSLink')
+  } finally {
+    await sdk.close()
+  }
+})
+
+test('Get hostname from cache when fetch fails', async (t) => {
+  const storage = await tmp()
+
+  const expected = NULL_KEY
+
+  const fetch = globalThis.fetch || (await import('bare-fetch')).default
+
+  let isFirst = true
+  let hasFailed = false
+  function testFetch (...args) {
+    if (isFirst) {
+      isFirst = false
+      return fetch(...args)
+    }
+    hasFailed = true
+    throw new Error('Simulated Network Fail')
+  }
+
+  let sdk = await create({ fetch: testFetch, storage })
+
+  try {
+    const resolved = await sdk.resolveDNSToKey('example.mauve.moe')
+
+    t.is(resolved, expected, 'Resolved to correct key')
+
+    await sdk.close()
+    sdk = await create({ fetch: testFetch, storage })
+
+    const resolved2 = await sdk.resolveDNSToKey('example.mauve.moe')
+
+    t.is(resolved2, expected, 'Resolved to correct key, without network')
+    t.is(hasFailed, true, 'Fetch was called and failed')
   } finally {
     await sdk.close()
   }
