@@ -8,10 +8,23 @@
       "default": "./index.js"
     }
   },
+  "imports": {
+    "events": {
+      "default": "bare-events"
+    },
+    "stream": {
+      "default": "bare-stream"
+    },
+    "path": {
+      "default": "bare-path"
+    }
+  },
   "scripts": {
-    "test": "node test.js",
+    "test": "npm run test:node && npm run test:bare",
+    "test:bare": "bare test.js",
+    "test:node": "node test.js",
     "lint": "standard --fix",
-    "upgrade-hyper": "npm i --save corestore@latest hypercore@latest hyperswarm@latest hyperdrive@latest hyperbee@latest hypercore-protocol@latest z32@latest b4a@latest"
+    "upgrade-hyper": "npm i --save corestore@latest hypercore@latest hyperswarm@latest hyperdrive@latest hyperbee@latest hypercore-protocol@latest z32@latest b4a@latest bare-events@latest bare-fetch@latest bare-os@latest bare-path@latest bare-stream@latest"
   },
   "repository": {
     "type": "git",
@@ -33,18 +46,25 @@
   "homepage": "https://github.com/rangermauve/hyper-sdk#readme",
   "dependencies": {
     "b4a": "^1.6.7",
-    "corestore": "^6.18.4",
+    "bare-events": "^2.5.4",
+    "bare-fetch": "^2.3.0",
+    "bare-os": "^3.6.1",
+    "bare-path": "^3.0.0",
+    "bare-stream": "^2.6.5",
+    "corestore": "^7.4.3",
     "dns-query": "^0.11.2",
-    "hyperbee": "^2.20.4",
-    "hypercore": "^10.37.25",
+    "hyperbee": "^2.24.2",
+    "hypercore": "^11.8.3",
     "hypercore-protocol": "^8.0.7",
-    "hyperdrive": "^11.13.0",
-    "hyperswarm": "^4.8.4",
-    "random-access-application": "^2.0.0",
-    "random-access-memory": "^6.2.0",
+    "hyperdrive": "^12.3.0",
+    "hyperswarm": "^4.11.7",
+    "rocksdb-native": "^3.5.10",
+    "test-tmp": "^1.4.0",
     "z32": "^1.1.0"
   },
   "devDependencies": {
+    "bare": "^1.17.6",
+    "brittle": "^3.7.0",
     "standard": "^17.0.0",
     "tape": "^5.6.1",
     "tmp-promise": "^3.0.3"

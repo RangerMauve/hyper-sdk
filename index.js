@@ -6,18 +6,14 @@ import Hyperbee from 'hyperbee'
 import crypto from 'hypercore-crypto'
 import z32 from 'z32'
 import b4a from 'b4a'
-import RAA from 'random-access-application'
-import RAM from 'random-access-memory'
-import { query, wellknown } from 'dns-query'
 import { EventEmitter } from 'events'
-import path from 'node:path'
+import { join } from 'path'
+import RocksDB from 'rocksdb-native'
 
 // TODO: Base36 encoding/decoding for URLs instead of hex
 
 export const HYPER_PROTOCOL_SCHEME = 'hyper://'
-export const DNSLINK_TXT_PREFIX = 'dnslink=/hyper/'
 export const DEFAULT_CORE_OPTS = {
-  sparse: true
 }
 export const DEFAULT_JOIN_OPTS = {
   server: true,
@@ -26,9 +22,6 @@ export const DEFAULT_JOIN_OPTS = {
 export const DEFAULT_CORESTORE_OPTS = {
 }
 export const DEFAULT_SWARM_OPTS = {
-}
-export const DEFAULT_DNS_QUERY_OPTS = {
-  endpoints: wellknown.endpoints('doh')
 }
 
 // Monkey-patching with first class URL support
@@ -48,30 +41,49 @@ Object.defineProperty(Hyperbee.prototype, 'url', {
   }
 })
 
+const DEFAULT_DNS_RESOLVER = 'https://mozilla.cloudflare-dns.com/dns-query'
+
+const DNSLINK_PREFIX = 'dnslink=/hyper/'
+
 export class SDK extends EventEmitter {
+  #fetch
+  #dnsCache
+  #dnsMemoryCache
+  #defaultCoreOpts
+  #defaultJoinOpts
+  #dnsResolver
+  #swarm
+  #corestore
+  #coreCache
+  #beeCache
+  #driveCache
+
   constructor ({
     swarm = throwMissing('swarm'),
     corestore = throwMissing('corestore'),
-    dnsLinkPrefix = DNSLINK_TXT_PREFIX,
+    dnsCache = throwMissing('dnsCache'),
+    fetch = globalThis.fetch,
     defaultCoreOpts = DEFAULT_CORE_OPTS,
     defaultJoinOpts = DEFAULT_JOIN_OPTS,
-    defaultDNSOpts = DEFAULT_DNS_QUERY_OPTS,
+    dnsResolver = DEFAULT_DNS_RESOLVER,
     autoJoin = true,
     doReplicate = true
   } = {}) {
     super()
-    this.swarm = swarm
-    this.corestore = corestore
+    this.#swarm = swarm
+    this.#corestore = corestore
+    this.#dnsCache = dnsCache
+    this.#fetch = fetch
 
     // These probably shouldn't be accessed
-    this.coreCache = new Map()
-    this.beeCache = new Map()
-    this.driveCache = new Map()
+    this.#dnsMemoryCache = new Map()
+    this.#coreCache = new Map()
+    this.#beeCache = new Map()
+    this.#driveCache = new Map()
 
-    this.dnsLinkPrefix = dnsLinkPrefix
-    this.defaultCoreOpts = defaultCoreOpts
-    this.defaultJoinOpts = defaultJoinOpts
-    this.defaultDNSOpts = defaultDNSOpts
+    this.#defaultCoreOpts = defaultCoreOpts
+    this.#defaultJoinOpts = defaultJoinOpts
+    this.#dnsResolver = dnsResolver
 
     this.autoJoin = autoJoin
 
@@ -82,6 +94,14 @@ export class SDK extends EventEmitter {
         this.replicate(connection)
       })
     }
+  }
+
+  get swarm () {
+    return this.#swarm
+  }
+
+  get corestore () {
+    return this.#corestore
   }
 
   get publicKey () {
@@ -97,30 +117,57 @@ export class SDK extends EventEmitter {
   }
 
   get cores () {
-    return [...this._cores.values()]
+    return [...this.#coreCache.values()]
   }
 
-  async resolveDNSToKey (domain, opts = {}) {
-    const finalOpts = { ...this.defaultDNSOpts, ...opts }
-    const name = `_dnslink.${domain}`
+  async resolveDNSToKey (hostname) {
+    // TODO: Check for TTL?
+    if (this.#dnsMemoryCache.has(hostname)) {
+      return this.#dnsMemoryCache.get(hostname)
+    }
 
-    const { answers } = await query({
-      question: { type: 'txt', name }
-    }, finalOpts)
+    const fetch = this.#fetch
 
-    for (const { data } of answers) {
-      if (!data || !data.length) continue
-      const [raw] = data
-      if (!raw) return
-      const asString = raw.toString('utf8')
-      if (asString.startsWith(this.dnsLinkPrefix)) {
-        if (asString.endsWith('/')) {
-          return asString.slice(this.dnsLinkPrefix.length, -1)
-        }
-        return asString.slice(this.dnsLinkPrefix.length)
+    const subdomained = `_dnslink.${hostname}`
+
+    const url = `${this.#dnsResolver}?name=${subdomained}&type=TXT`
+
+    let answers = null
+    try {
+      const response = await fetch(url, {
+        headers: { accept: 'application/dns-json' }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Unable to resolve DoH for ${hostname} ${await response.text()}`)
+      }
+
+      const dnsResults = await response.json()
+      answers = dnsResults.Answer
+      await this.#dnsCache.put(hostname, JSON.stringify(dnsResults))
+    } catch (e) {
+      const cached = await this.#dnsCache.get(hostname)
+      if (cached) {
+        answers = JSON.parse(cached).Answer
       }
     }
-    throw new Error(`Unable to resolve DNSLink domain for ${domain}. If you are the site operator, please add a TXT record pointing at _dnslink.${domain} with the value dnslink=/hyper/YOUR_KEY_IN_Z32_HERE`)
+
+    for (let { name, data } of answers) {
+      if (name !== subdomained || !data) {
+        continue
+      }
+      if (data.startsWith('"')) {
+        data = data.slice(1, -1)
+      }
+      if (!data.startsWith(DNSLINK_PREFIX)) {
+        continue
+      }
+      const key = data.split('/')[2]
+      this.#dnsMemoryCache.set(hostname, key)
+      return key
+    }
+
+    throw new Error(`DNS-Link Record not found for TXT ${subdomained}`)
   }
 
   // Resolves a string to be a key or opts and resolves DNS
@@ -145,9 +192,9 @@ export class SDK extends EventEmitter {
       const url = new URL(nameOrKeyOrURL)
       // probably a domain
       if (url.hostname.includes('.')) {
-        const resolved = await this.resolveDNSToKey(url.hostname)
-        const key = stringToKey(resolved)
-        return { key }
+        const key = await this.resolveDNSToKey(url.hostname)
+
+        return { key: stringToKey(key) }
       } else {
         // Try to parse the hostname to a key
         const key = stringToKey(url.hostname)
@@ -170,17 +217,17 @@ export class SDK extends EventEmitter {
   async getBee (nameOrKeyOrURL, opts = {}) {
     const core = await this.get(nameOrKeyOrURL, opts)
 
-    if (this.beeCache.has(core.url)) {
-      return this.beeCache.get(core.url)
+    if (this.#beeCache.has(core.url)) {
+      return this.#beeCache.get(core.url)
     }
 
     const bee = new Hyperbee(core, opts)
 
     core.once('close', () => {
-      this.beeCache.delete(core.url)
+      this.#beeCache.delete(core.url)
     })
 
-    this.beeCache.set(core.url, bee)
+    this.#beeCache.set(core.url, bee)
 
     await bee.ready()
 
@@ -189,7 +236,7 @@ export class SDK extends EventEmitter {
 
   async getDrive (nameOrKeyOrURL, opts = {}) {
     const coreOpts = {
-      ...this.defaultCoreOpts,
+      ...this.#defaultCoreOpts,
       autoJoin: this.autoJoin,
       ...opts
     }
@@ -199,10 +246,10 @@ export class SDK extends EventEmitter {
     const { key, name } = resolvedOpts
     let stringKey = key && key.toString('hex')
 
-    if (this.driveCache.has(name)) {
-      return this.driveCache.get(name)
-    } else if (this.driveCache.has(stringKey)) {
-      return this.driveCache.get(stringKey)
+    if (this.#driveCache.has(name)) {
+      return this.#driveCache.get(name)
+    } else if (this.#driveCache.has(stringKey)) {
+      return this.#driveCache.get(stringKey)
     }
 
     Object.assign(coreOpts, resolvedOpts)
@@ -225,12 +272,12 @@ export class SDK extends EventEmitter {
     stringKey = core.key.toString('hex')
 
     drive.once('close', () => {
-      this.driveCache.delete(stringKey)
-      this.driveCache.delete(name)
+      this.#driveCache.delete(stringKey)
+      this.#driveCache.delete(name)
     })
 
-    this.driveCache.set(stringKey, drive)
-    if (name) this.driveCache.set(name, drive)
+    this.#driveCache.set(stringKey, drive)
+    if (name) this.#driveCache.set(name, drive)
 
     if (coreOpts.autoJoin && !core.discovery) {
       await this.joinCore(core, opts)
@@ -241,7 +288,7 @@ export class SDK extends EventEmitter {
 
   async get (nameOrKeyOrURL, opts = {}) {
     const coreOpts = {
-      ...this.defaultCoreOpts,
+      ...this.#defaultCoreOpts,
       autoJoin: this.autoJoin,
       ...opts
     }
@@ -251,10 +298,10 @@ export class SDK extends EventEmitter {
     const { key, name } = resolvedOpts
     let stringKey = key && key.toString('hex')
 
-    if (this.coreCache.has(name)) {
-      return this.coreCache.get(name)
-    } else if (this.coreCache.has(stringKey)) {
-      return this.coreCache.get(stringKey)
+    if (this.#coreCache.has(name)) {
+      return this.#coreCache.get(name)
+    } else if (this.#coreCache.has(stringKey)) {
+      return this.#coreCache.get(stringKey)
     }
 
     Object.assign(coreOpts, resolvedOpts)
@@ -266,14 +313,14 @@ export class SDK extends EventEmitter {
     await core.ready()
 
     core.once('close', () => {
-      this.coreCache.delete(stringKey)
-      this.coreCache.delete(name)
+      this.#coreCache.delete(stringKey)
+      this.#coreCache.delete(name)
     })
 
     stringKey = core.key.toString('hex')
 
-    this.coreCache.set(stringKey, core)
-    if (name) this.coreCache.set(name, core)
+    this.#coreCache.set(stringKey, core)
+    if (name) this.#coreCache.set(name, core)
 
     if (coreOpts.autoJoin && !core.discovery) {
       await this.joinCore(core, opts)
@@ -344,10 +391,12 @@ export class SDK extends EventEmitter {
   }
 
   async close () {
+    await this.#dnsCache.flush()
     // Close corestore, close hyperswarm
     await Promise.all([
       this.corestore.close(),
-      this.swarm.destroy()
+      this.swarm.destroy(),
+      this.#dnsCache.close()
     ])
   }
 
@@ -357,24 +406,16 @@ export class SDK extends EventEmitter {
 }
 
 export async function create ({
-  storage = 'hyper-sdk',
+  storage,
   corestoreOpts = DEFAULT_CORESTORE_OPTS,
   swarmOpts = DEFAULT_SWARM_OPTS,
+  fetch = globalThis.fetch,
   ...opts
 } = {}) {
-  const isStringStorage = typeof storage === 'string'
-  const isPathStorage = isStringStorage && (
-    storage.startsWith('.') || path.isAbsolute(storage)
-  )
-
-  let storageBackend = storage
-  if (isStringStorage && !isPathStorage) {
-    storageBackend = RAA(storage)
-  } else if (storage === false) {
-    storageBackend = RAM.reusable()
-  }
-
-  const corestore = opts.corestore || new CoreStore(storageBackend, { ...corestoreOpts })
+  // TODO: Account for "random-access-application" style storage
+  if (!storage) throw new Error('Storage parameter is required to be a valid file path')
+  const corestore = opts.corestore || new CoreStore(storage, { ...corestoreOpts })
+  const dnsCache = opts.dnsCache || new RocksDB(join(storage, 'dnsCache'))
 
   const networkKeypair = await corestore.createKeyPair('noise')
 
@@ -384,9 +425,11 @@ export async function create ({
   })
 
   const sdk = new SDK({
-    swarm,
+    ...opts,
+    fetch: fetch || (await import('bare-fetch')).default,
     corestore,
-    ...opts
+    swarm,
+    dnsCache
   })
 
   await sdk.ready()

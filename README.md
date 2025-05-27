@@ -12,8 +12,9 @@ The Hyper SDK combines the lower level pieces of the Hyper stack into high level
 
 - High level API
 - Cross-platform with same codebase
-  - ✔ Node
-  - ✔ Electron
+  - ✔ [Node.js](https://nodejs.org/en)
+  - ✔ [Electron](https://www.electronjs.org/)
+  - ✔ [Pear](https://docs.pears.com/)
   - 🏗️ Web (PRs welcome)
 
 ## Installation
@@ -35,12 +36,9 @@ import * as SDK from "hyper-sdk"
 
 ```JavaScript
 const sdk = await SDK.create({
-  // Specify the "storage" you want
-  // Regular strings will be passed to `random-access-application` to store in your user directory
-  // On web this will use `random-access-web` to choose the best storage based on the browser
-  // You can specify an absolute or relative path `./example/` to choose where to store data
-  // You can specify `false` to not persist data at all and do everything in-memory
-  storage: 'hyper-sdk',
+  // This argument is mandatory since Hypercore no longer support in-memory
+  // Check out the env-paths module for application specific path storage
+  storage: './hyper-sdk',
 
   // This controls whether the SDK will automatically start swarming when loading a core via `get`
   // Set this to false if you want to have more fine control over peer discovery
@@ -99,8 +97,6 @@ sdk.on('peer-add', (peerInfo) => {
 
 You can initialize a [Hypercore](https://github.com/hypercore-protocol/hypercore) instance by passing in a key, a name to derive a key from, or a URL containing either a key or a DNS name.
 
-You can also pass additional options for whether the hypercore should be replicated as sparse or not.
-
 Unlike corestore, you may not initialize a hypercore from a `null` key since everything must be derivable or loadable.
 
 Unless `autoJoin` is set to `false`, the peer discovery will be automatically started for the core.
@@ -120,9 +116,6 @@ const core = await sdk.get('hyper://00000000000000000000000000000000000000000000
 
 // z32 encoded, equivalent to 32 bytes of zeros
 const core = await sdk.get('hyper://yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy')
-
-// Disable sparse mode in order to download everything from peers
-const core = await sdk.get('example', {sparse: false})
 
 // Don't auto-join the swarm for the core on init
 const core = await sdk.get('example', {autoJoin: false})
@@ -174,6 +167,8 @@ You can manually resolve DNS addresses to hypercore keys on domains using the DN
 
 However, it's not mandatory to use DNS since `sdk.get()` will automatically detect and perform resolutions of DNS for `hyper://` URLs.
 
+Hyper-SDK currently bypasses the OS DNS resolver and uses DNS Over HTTPS. You can configure your own using the `dnsResolver` config option and any of the options [on this list](https://dnsprivacy.org/public_resolvers/#dns-over-https-doh). By default we use the one provided by [Mozilla](https://developers.cloudflare.com/1.1.1.1/commitment-to-privacy/privacy-policy/firefox/).
+
 ```JavaScript
 const key = await sdk.resolveDNSToKey('example.mauve.moe')
 ```
@@ -220,8 +215,8 @@ sdk.leave("cool cat videos")
 ### sdk.joinPeer() / sdk.leavePeer()
 
 ```JavaScript
-const sdk1 = await SDK.create({persist: false})
-const sdk2 = await SDK.create({persist: false})
+const sdk1 = await SDK.create({storage: './sdk1'})
+const sdk2 = await SDK.create({storage: './sdk1'})
 
 sdk1.joinPeer(sdk2.publicKey)
 ```

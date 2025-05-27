@@ -6,7 +6,7 @@ jobs:
   build:
     strategy:
       matrix:
-        node: [ '18' ]
+        node: [ '24' ]
         os: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
 
@@ -18,4 +18,4 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: npm install
       - run: npm run lint
-      - run: npm run test
+      - run: npm run test:node
