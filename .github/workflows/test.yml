@@ -6,7 +6,7 @@ jobs:
   build:
     strategy:
       matrix:
-        node: [ '18' ]
+        node: [ '24' ]
         os: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
 
