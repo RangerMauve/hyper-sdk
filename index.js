@@ -406,13 +406,14 @@ export class SDK extends EventEmitter {
 }
 
 export async function create ({
-  storage = './hyper-sdk',
+  storage,
   corestoreOpts = DEFAULT_CORESTORE_OPTS,
   swarmOpts = DEFAULT_SWARM_OPTS,
   fetch = globalThis.fetch,
   ...opts
 } = {}) {
   // TODO: Account for "random-access-application" style storage
+  if (!storage) throw new Error('Storage parameter is required to be a valid file path')
   const corestore = opts.corestore || new CoreStore(storage, { ...corestoreOpts })
   const dnsCache = opts.dnsCache || new RocksDB(join(storage, 'dnsCache'))
 

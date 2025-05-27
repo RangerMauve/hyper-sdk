@@ -36,11 +36,9 @@ import * as SDK from "hyper-sdk"
 
 ```JavaScript
 const sdk = await SDK.create({
-  // Specify the "storage" you want
-  // Regular strings will be passed to `random-access-application` to store in your user directory
-  // On web this will use `random-access-web` to choose the best storage based on the browser
-  // You can specify an absolute or relative path `./example/` to choose where to store data
-  storage: 'hyper-sdk',
+  // This argument is mandatory since Hypercore no longer support in-memory
+  // Check out the env-paths module for application specific path storage
+  storage: './hyper-sdk',
 
   // This controls whether the SDK will automatically start swarming when loading a core via `get`
   // Set this to false if you want to have more fine control over peer discovery
