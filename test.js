@@ -1,4 +1,4 @@
-import { test } from 'brittle'
+import { test, configure } from 'brittle'
 import { once } from 'events'
 import { create } from './index.js'
 import b4a from 'b4a'
@@ -9,7 +9,10 @@ const NULL_BUFFER = b4a.alloc(32, 0)
 const NULL_HEX_KEY = NULL_BUFFER.toString('hex')
 const NULL_URL = `hyper://${NULL_KEY}/`
 
-const timeout = 30000
+// Close can take a while
+const timeout = 120_000
+
+configure({ timeout })
 
 test('Specify storage for sdk', async (t) => {
   const storage = await tmp()
@@ -193,6 +196,7 @@ test('Get hostname from cache when fetch fails', async (t) => {
     t.is(resolved, expected, 'Resolved to correct key')
 
     await sdk.close()
+    console.log('close')
     sdk = await create({ fetch: testFetch, storage })
 
     const resolved2 = await sdk.resolveDNSToKey('example.mauve.moe')
@@ -204,7 +208,7 @@ test('Get hostname from cache when fetch fails', async (t) => {
   }
 })
 
-test('Load a core between two peers', { timeout }, async (t) => {
+test('Load a core between two peers', async (t) => {
   const storage1 = await tmp()
   const storage2 = await tmp()
 
@@ -234,7 +238,7 @@ test('Load a core between two peers', { timeout }, async (t) => {
   }
 })
 
-test('Connect directly between two peers', { timeout }, async (t) => {
+test('Connect directly between two peers', async (t) => {
   const storage1 = await tmp()
   const storage2 = await tmp()
 
@@ -315,7 +319,7 @@ test('Get a hyperbee and share a key value pair', async (t) => {
 
     const db2 = await sdk2.getBee(db1.url, encodingOpts)
     t.is(db2.url, db1.url, 'Loaded bee has same URL')
-
+    t.is(db2.version, db1.version, 'Loaded bee has same version')
     const { value } = await db2.get('hello')
 
     t.is(value, 'world', 'Got value for key')
