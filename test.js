@@ -331,4 +331,28 @@ test('Get a hyperbee and share a key value pair', async (t) => {
   }
 })
 
+test.solo('Load URL of created core is writable', async (t) => {
+  const data = 'Hello World!'
+
+  const storage = await tmp()
+
+  const sdk = await create({ storage })
+
+  try {
+    const core = await sdk.get('example')
+    t.is(core.writable, true)
+    await core.append(data)
+const {url, id} = core
+    await core.close()
+
+    const reloadedCore = await sdk.get(url)
+    t.not(reloadedCore, core, 'new core created')
+    t.is(reloadedCore.url, url, 'same url')
+    t.is(reloadedCore.writable, true, 'can still write')
+
+  } finally {
+    await sdk.close()
+  }
+})
+
 // test('', async (t) => {})
