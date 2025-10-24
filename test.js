@@ -356,7 +356,7 @@ test('Load URL of created core is writable', async (t) => {
   }
 })
 
-test.solo('Load URL of created core from disk is writable', async (t) => {
+test('Load URL of created core from disk is writable', async (t) => {
   const data = 'Hello World!'
 
   const storage = await tmp()
@@ -378,6 +378,63 @@ test.solo('Load URL of created core from disk is writable', async (t) => {
     t.is(reloadedCore.writable, true, 'can still write')
     await t.execution(reloadedCore.append(data), 'able to write')
     t.is(reloadedCore.length, 2, 'both entries in length')
+  } finally {
+    await sdk.close()
+  }
+})
+
+test('Load URL of created drive is writable', async (t) => {
+  const data = 'Hello World!'
+
+  const storage = await tmp()
+
+  const sdk = await create({ storage })
+
+  try {
+    const drive = await sdk.getDrive('example')
+    t.is(drive.writable, true)
+    await drive.put('example.txt', data)
+    const { url } = drive
+    await drive.close()
+
+    const reloaded = await sdk.getDrive(url)
+    t.not(reloaded, drive, 'new drive created')
+    t.is(reloaded.url, url, 'same url')
+    t.is(reloaded.writable, true, 'can still write')
+    await t.execution(
+      reloaded.put('example2.txt', data), 'able to write'
+    )
+    t.is(reloaded.version, 3, 'both entries in length')
+  } finally {
+    await sdk.close()
+  }
+})
+
+test('Load URL of created drive from disk is writable', async (t) => {
+  const data = 'Hello World!'
+
+  const storage = await tmp()
+
+  let sdk = await create({ storage })
+
+  try {
+    const drive = await sdk.getDrive('example')
+    t.is(drive.writable, true)
+    await drive.put('example.txt', data)
+    const { url } = drive
+    await drive.close()
+
+    await sdk.close()
+    sdk = await create({ storage })
+
+    const reloaded = await sdk.getDrive(url)
+    t.not(reloaded, drive, 'new drive created')
+    t.is(reloaded.url, url, 'same url')
+    t.is(reloaded.writable, true, 'can still write')
+    await t.execution(
+      reloaded.put('example2.txt', data), 'able to write'
+    )
+    t.is(reloaded.version, 3, 'both entries in length')
   } finally {
     await sdk.close()
   }
