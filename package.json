@@ -19,6 +19,7 @@
       "default": "bare-path"
     }
   },
+  "types": "dist",
   "scripts": {
     "test": "npm run test:node && npm run test:bare",
     "test:bare": "bare test.js",

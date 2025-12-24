@@ -2,15 +2,14 @@
     "compilerOptions": {
         "target": "es2022",
         "module": "nodenext",
-        "verbatimModuleSyntax": true,
         "checkJs": true,
         "allowJs": true,
         "declaration": true,
         "emitDeclarationOnly": true,
-        "noEmit": true
+        "outDir": "dist",
     },
     "extends": "@tsconfig/node20/tsconfig.json",
     "files": ["./index.js","./test.js"],
     "include": ["./index.js","./test.js", "types/*.d.ts"],
-    "exclude": ["node_modules"]
+    "exclude": ["node_modules", "index.d.ts"],
 }
