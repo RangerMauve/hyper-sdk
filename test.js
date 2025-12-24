@@ -4,6 +4,8 @@ import { create } from './index.js'
 import b4a from 'b4a'
 import tmp from 'test-tmp'
 
+/** @import Hyperbee from 'hyperbee' */
+
 const NULL_KEY = 'yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy'
 const NULL_BUFFER = b4a.alloc(32, 0)
 const NULL_HEX_KEY = NULL_BUFFER.toString('hex')
@@ -314,15 +316,20 @@ test('Get a hyperbee and share a key value pair', async (t) => {
   const sdk2 = await create({ storage: storage2 })
 
   try {
-    const encodingOpts = { keyEncoding: 'utf8', valueEncoding: 'utf8' }
-    const db1 = await sdk1.getBee('example', encodingOpts)
+    const encodingOpts = { keyEncoding: 'utf-8', valueEncoding: 'utf-8' }
+    // @ts-ignore
+    const db1 = /** @type {Hyperbee<string,string>} */ (await sdk1.getBee('example', encodingOpts))
 
     await db1.put('hello', 'world')
 
-    const db2 = await sdk2.getBee(db1.url, encodingOpts)
+    // @ts-ignore
+    const db2 = /** @type {Hyperbee<string,string>} */ (await sdk2.getBee(db1.url, encodingOpts))
     t.is(db2.url, db1.url, 'Loaded bee has same URL')
     t.is(db2.version, db1.version, 'Loaded bee has same version')
-    const { value } = await db2.get('hello')
+    const gotValue = await db2.get('hello')
+
+    if (!gotValue) return t.fail('unable to get value for key')
+    const { value } = gotValue
 
     t.is(value, 'world', 'Got value for key')
   } finally {

@@ -130,25 +130,32 @@ export class SDK extends EventEmitter {
   }
 
   get publicKey () {
-    return this.swarm.keyPair.publicKey
+    return this.#swarm.keyPair.publicKey
   }
 
   get connections () {
-    return this.swarm.connections
+    return this.#swarm.connections
   }
 
   get peers () {
-    return this.swarm.peers
+    return this.#swarm.peers
   }
 
+  /**
+   * @type {Hypercore[]}
+   */
   get cores () {
     return [...this.#coreCache.values()]
   }
 
+  /**
+   * @type {Hyperdrive[]}
+   */
   get drives () {
     return [...this.#driveCache.values()]
   }
 
+  /** @type {Hyperbee[]} */
   get bees () {
     return [...this.#beeCache.values()]
   }
@@ -265,8 +272,8 @@ export class SDK extends EventEmitter {
   /**
    *
    * @param {NameOrKeyOrURL} nameOrKeyOrURL Name or key or hyper URL for the bee
-   * @param {BeeOpts & CoreOpts} opts Options for configuring Hyperbee
-   * @returns
+   * @param {BeeOpts & CoreOpts & JoinOpts} opts Options for configuring Hyperbee
+   * @returns {Promise<Hyperbee>}
    */
   async getBee (nameOrKeyOrURL, opts = {}) {
     const core = await this.get(nameOrKeyOrURL, opts)
@@ -291,8 +298,8 @@ export class SDK extends EventEmitter {
   /**
    *
    * @param {NameOrKeyOrURL} nameOrKeyOrURL
-   * @param {DriveOpts} opts
-   * @returns
+   * @param {DriveOpts&JoinOpts} opts
+   * @returns {Promise<Hyperdrive>}
    */
   async getDrive (nameOrKeyOrURL, opts = {}) {
     const coreOpts = {
@@ -347,10 +354,11 @@ export class SDK extends EventEmitter {
   }
 
   /**
+   * @template DataType
    * Get a HyperCore by its name or key or URL
    * @param {NameOrKeyOrURL} nameOrKeyOrURL
-   * @param {CoreOpts} [opts]
-   * @returns
+   * @param {CoreOpts&JoinOpts} [opts]
+   * @returns {Promise<Hypercore<DataType>>}
    */
   async get (nameOrKeyOrURL, opts = {}) {
     const coreOpts = {
@@ -396,10 +404,10 @@ export class SDK extends EventEmitter {
   }
 
   /**
- * Get a sub CoreStore for a given namespace. Use this to derive core names for a particular group
- * @param {string} namespace Namespace to store cores under
- * @returns {CoreStore}
- */
+   * Get a sub CoreStore for a given namespace. Use this to derive core names for a particular group
+   * @param {string} namespace Namespace to store cores under
+   * @returns {CoreStore}
+   */
   namespace (namespace) {
     return this.corestore.namespace(namespace)
   }
@@ -417,7 +425,7 @@ export class SDK extends EventEmitter {
   /**
    * Start peer discovery on a core. Use this if you created a core on a namespaced CoreStore
    * @param {Hypercore} core
-   * @param {CoreOpts} opts
+   * @param {JoinOpts} opts
    * @returns {Promise<void>}
    */
   async joinCore (core, opts = {}) {

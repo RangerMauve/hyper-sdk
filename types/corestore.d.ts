@@ -7,7 +7,7 @@ declare module "corestore" {
   export default class CoreStore {
     constructor(storage: strin | RocksDB, opts: CoreStoreOpts?);
     namespace(namespace: string): CoreStore;
-    get(opts: CoreOpts): Hypercore;
+    get<DataType>(opts: CoreOpts): Hypercore<DataType>;
     ready(): Promise<void>
     close(): Promise<void>
     createKeyPair(name: string): KeyPair
