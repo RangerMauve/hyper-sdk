@@ -24,7 +24,7 @@ test('Specify storage for sdk', async (t) => {
   try {
     try {
       sdk2 = await create({ storage })
-      t.fail(new Error('Should not be able to load SDK over existing dir'))
+      t.fail('Should not be able to load SDK over existing dir')
     } catch {
       t.pass('Threw error when opening same storage path twice')
     } finally {
@@ -90,6 +90,7 @@ test('Load hypercores by names and urls', async (t) => {
     ]
 
     for (const key of toTry) {
+      // @ts-ignore
       const core = await sdk.get(key)
 
       t.ok(core, `Got core for ${key}`)
@@ -179,6 +180,7 @@ test('Get hostname from cache when fetch fails', async (t) => {
 
   let isFirst = true
   let hasFailed = false
+  /** @type {typeof globalThis['fetch']} */
   function testFetch (...args) {
     if (isFirst) {
       isFirst = false

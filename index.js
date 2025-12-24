@@ -10,6 +10,19 @@ import { EventEmitter } from 'events'
 import { join } from 'path'
 import RocksDB from 'rocksdb-native'
 
+/** @import {JoinOpts,SwarmOpts,PeerDiscovery,Connection} from "hyperswarm" */
+/** @import {BeeOpts} from "hyperbee" */
+/** @import {CoreOpts} from "hypercore" */
+/** @import {DriveOpts} from "hyperdrive" */
+/** @import {CoreStoreOpts} from "corestore" */
+
+/** @typedef {string|Buffer} NameOrKeyOrURL */
+/** @typedef {{key?:Buffer|Uint8Array|null, name?:string}} ResolvedKeyOrName */
+/**
+ * @typedef {object} DNSResponse
+ * @property {{name: string, data: string}} DNSResponse.Answer
+ */
+
 // TODO: Base36 encoding/decoding for URLs instead of hex
 
 export const HYPER_PROTOCOL_SCHEME = 'hyper://'
@@ -55,10 +68,22 @@ export class SDK extends EventEmitter {
   #beeCache
   #driveCache
 
+  /**
+   * @param {object} [options]
+   * @param {typeof globalThis["fetch"]} [options.fetch]
+   * @param {HyperSwarm} [options.swarm]
+   * @param {CoreStore} [options.corestore]
+   * @param {CoreOpts} [options.defaultCoreOpts]
+   * @param {JoinOpts} [options.defaultJoinOpts]
+   * @param {string} [options.dnsResolver]
+   * @param {boolean} [options.autoJoin=true]
+   * @param {boolean} [options.doReplicate=true]
+   * @param {RocksDB} [options.dnsCache]
+   */
   constructor ({
-    swarm = throwMissing('swarm'),
-    corestore = throwMissing('corestore'),
-    dnsCache = throwMissing('dnsCache'),
+    swarm,
+    corestore,
+    dnsCache,
     fetch = globalThis.fetch,
     defaultCoreOpts = DEFAULT_CORE_OPTS,
     defaultJoinOpts = DEFAULT_JOIN_OPTS,
@@ -67,6 +92,9 @@ export class SDK extends EventEmitter {
     doReplicate = true
   } = {}) {
     super()
+    if (!swarm) throw new TypeError('Missing parameter swarm')
+    if (!corestore) throw new TypeError('Missing parameter corestore')
+    if (!dnsCache) throw new TypeError('Missing parameter dnsCache')
     this.#swarm = swarm
     this.#corestore = corestore
     this.#dnsCache = dnsCache
@@ -125,6 +153,11 @@ export class SDK extends EventEmitter {
     return [...this.#beeCache.values()]
   }
 
+  /**
+   * Resolve DNS names to a hypercore key using the DNSLink spec
+   * @param {string} hostname Hostname to resolve, e,g, `agregore.mauve.moe`
+   * @returns {Promise<string>}
+   */
   async resolveDNSToKey (hostname) {
     // TODO: Check for TTL?
     if (this.#dnsMemoryCache.has(hostname)) {
@@ -149,7 +182,7 @@ export class SDK extends EventEmitter {
         )
       }
 
-      const dnsResults = await response.json()
+      const dnsResults = /** @type {DNSResponse} */ (await response.json())
       answers = dnsResults.Answer
       await this.#dnsCache.put(hostname, JSON.stringify(dnsResults))
     } catch (e) {
@@ -177,8 +210,12 @@ export class SDK extends EventEmitter {
     throw new Error(`DNS-Link Record not found for TXT ${subdomained}`)
   }
 
-  // Resolves a string to be a key or opts and resolves DNS
-  // Useful for hypercore opts or Hyperdrive
+  /**
+   * Resolves a string to be a key or opts and resolves DNS
+   * Useful for hypercore opts or Hyperdrive
+   * @param {NameOrKeyOrURL} nameOrKeyOrURL Name or key or URL to resolve
+   * @returns {Promise<ResolvedKeyOrName>}
+   */
   async resolveNameOrKeyToOpts (nameOrKeyOrURL) {
     // If a URL, use the hostname as either a key or a DNS to resolve
     // If not a URL, try to decode to a key
@@ -225,6 +262,12 @@ export class SDK extends EventEmitter {
     }
   }
 
+  /**
+   *
+   * @param {NameOrKeyOrURL} nameOrKeyOrURL Name or key or hyper URL for the bee
+   * @param {BeeOpts & CoreOpts} opts Options for configuring Hyperbee
+   * @returns
+   */
   async getBee (nameOrKeyOrURL, opts = {}) {
     const core = await this.get(nameOrKeyOrURL, opts)
 
@@ -245,6 +288,12 @@ export class SDK extends EventEmitter {
     return bee
   }
 
+  /**
+   *
+   * @param {NameOrKeyOrURL} nameOrKeyOrURL
+   * @param {DriveOpts} opts
+   * @returns
+   */
   async getDrive (nameOrKeyOrURL, opts = {}) {
     const coreOpts = {
       ...this.#defaultCoreOpts,
@@ -267,9 +316,9 @@ export class SDK extends EventEmitter {
 
     let corestore = this.corestore
 
-    if (resolvedOpts.key) {
+    if (stringKey) {
       corestore = this.namespace(stringKey)
-    } else if (resolvedOpts.name) {
+    } else if (name) {
       corestore = this.namespace(name)
     } else {
       throw new Error('Unable to parse')
@@ -297,6 +346,12 @@ export class SDK extends EventEmitter {
     return drive
   }
 
+  /**
+   * Get a HyperCore by its name or key or URL
+   * @param {NameOrKeyOrURL} nameOrKeyOrURL
+   * @param {CoreOpts} [opts]
+   * @returns
+   */
   async get (nameOrKeyOrURL, opts = {}) {
     const coreOpts = {
       ...this.#defaultCoreOpts,
@@ -340,16 +395,31 @@ export class SDK extends EventEmitter {
     return core
   }
 
-  // Returns a corestore for a namespace
+  /**
+ * Get a sub CoreStore for a given namespace. Use this to derive core names for a particular group
+ * @param {string} namespace Namespace to store cores under
+ * @returns {CoreStore}
+ */
   namespace (namespace) {
     return this.corestore.namespace(namespace)
   }
 
+  /**
+   * Derive a topic key (for hypercores) from a namespace.
+   * @param {string} name Name of the namespace to derive
+   * @returns {Buffer}
+   */
   makeTopicKey (name) {
     const [key] = crypto.namespace(name, 1)
     return key
   }
 
+  /**
+   * Start peer discovery on a core. Use this if you created a core on a namespaced CoreStore
+   * @param {Hypercore} core
+   * @param {CoreOpts} opts
+   * @returns {Promise<void>}
+   */
   async joinCore (core, opts = {}) {
     if (core.discovery) return
     const discovery = this.join(core.discoveryKey, opts)
@@ -372,6 +442,12 @@ export class SDK extends EventEmitter {
     })
   }
 
+  /**
+   *
+   * @param {string|Buffer} topic
+   * @param {JoinOpts} opts
+   * @returns {PeerDiscovery}
+   */
   join (topic, opts = {}) {
     if (typeof topic === 'string') {
       return this.join(this.makeTopicKey(topic), opts)
@@ -380,6 +456,11 @@ export class SDK extends EventEmitter {
     return this.swarm.join(topic, joinOpts)
   }
 
+  /**
+   *
+   * @param {string|Buffer} topic
+   * @returns {Promise<void>}
+   */
   leave (topic) {
     if (typeof topic === 'string') {
       return this.leave(this.makeTopicKey(topic))
@@ -387,12 +468,18 @@ export class SDK extends EventEmitter {
     return this.swarm.leave(topic)
   }
 
+  /**
+   * @param {Buffer} id
+   */
   joinPeer (id) {
-    return this.swarm.joinPeer(id)
+    this.swarm.joinPeer(id)
   }
 
+  /**
+   * @param {Buffer} id
+   */
   leavePeer (id) {
-    return this.swarm.leavePeer(id)
+    this.swarm.leavePeer(id)
   }
 
   async ready () {
@@ -411,11 +498,32 @@ export class SDK extends EventEmitter {
     ])
   }
 
+  /**
+   * Replicate a connection from hyperswarm manually
+   * @param {Connection} connection
+   */
   replicate (connection) {
     this.corestore.replicate(connection)
   }
 }
 
+/**
+ *
+ * @param {object} options
+ * @param {string} [options.storage]
+ * @param {CoreStoreOpts} [options.corestoreOpts]
+ * @param {SwarmOpts} [options.swarmOpts]
+ * @param {typeof globalThis["fetch"]} [options.fetch]
+ * @param {HyperSwarm} [options.swarm]
+ * @param {CoreStore} [options.corestore]
+ * @param {RocksDB} [options.dnsCache]
+ * @param {CoreOpts} [options.defaultCoreOpts]
+ * @param {JoinOpts} [options.defaultJoinOpts]
+ * @param {string} [options.dnsResolver]
+ * @param {boolean} [options.autoJoin=true]
+ * @param {boolean} [options.doReplicate=true]
+ * @returns {Promise<SDK>}
+ */
 export async function create ({
   storage,
   corestoreOpts = DEFAULT_CORESTORE_OPTS,
@@ -423,12 +531,12 @@ export async function create ({
   fetch = globalThis.fetch,
   ...opts
 } = {}) {
-  // TODO: Account for "random-access-application" style storage
   if (!storage) {
     throw new Error('Storage parameter is required to be a valid file path')
   }
   const corestore =
     opts.corestore || new CoreStore(storage, { ...corestoreOpts })
+
   const dnsCache = opts.dnsCache || new RocksDB(join(storage, 'dnsCache'))
 
   const networkKeypair = await corestore.createKeyPair('noise')
@@ -453,6 +561,10 @@ export async function create ({
   return sdk
 }
 
+/**
+ * @param {string} string
+ * @returns {Buffer|Uint8Array|null}
+ */
 function stringToKey (string) {
   if (string.length === 52) {
     try {
@@ -469,8 +581,4 @@ function stringToKey (string) {
     }
   }
   return null
-}
-
-function throwMissing (name) {
-  throw new TypeError(`Missing parameter ${name}`)
 }

@@ -23,7 +23,7 @@
     "test": "npm run test:node && npm run test:bare",
     "test:bare": "bare test.js",
     "test:node": "node test.js",
-    "lint": "standard --fix",
+    "lint": "standard --fix && tsc",
     "upgrade-hyper": "npm i --save corestore@latest hypercore@latest hyperswarm@latest hyperdrive@latest hyperbee@latest hypercore-protocol@latest z32@latest b4a@latest bare-events@latest bare-fetch@latest bare-os@latest bare-path@latest bare-stream@latest"
   },
   "repository": {
@@ -63,10 +63,15 @@
     "z32": "^1.1.0"
   },
   "devDependencies": {
+    "@tsconfig/node20": "^20.1.8",
+    "@types/b4a": "^1.6.5",
+    "@types/brittle": "^3.5.0",
+    "@types/node": "^25.0.3",
     "bare": "^1.22.0",
     "brittle": "^3.7.0",
     "standard": "^17.0.0",
     "tape": "^5.6.1",
-    "tmp-promise": "^3.0.3"
+    "tmp-promise": "^3.0.3",
+    "typescript": "^5.9.3"
   }
 }
