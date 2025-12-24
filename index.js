@@ -13,16 +13,13 @@ import RocksDB from 'rocksdb-native'
 // TODO: Base36 encoding/decoding for URLs instead of hex
 
 export const HYPER_PROTOCOL_SCHEME = 'hyper://'
-export const DEFAULT_CORE_OPTS = {
-}
+export const DEFAULT_CORE_OPTS = {}
 export const DEFAULT_JOIN_OPTS = {
   server: true,
   client: true
 }
-export const DEFAULT_CORESTORE_OPTS = {
-}
-export const DEFAULT_SWARM_OPTS = {
-}
+export const DEFAULT_CORESTORE_OPTS = {}
+export const DEFAULT_SWARM_OPTS = {}
 
 // Monkey-patching with first class URL support
 Object.defineProperty(Hypercore.prototype, 'url', {
@@ -139,7 +136,9 @@ export class SDK extends EventEmitter {
       })
 
       if (!response.ok) {
-        throw new Error(`Unable to resolve DoH for ${hostname} ${await response.text()}`)
+        throw new Error(
+          `Unable to resolve DoH for ${hostname} ${await response.text()}`
+        )
       }
 
       const dnsResults = await response.json()
@@ -178,13 +177,15 @@ export class SDK extends EventEmitter {
     // if not a key, use as name to generate a hypercore
     // Else it's an errorW
 
-    const isKeyString = (typeof nameOrKeyOrURL === 'string')
+    const isKeyString = typeof nameOrKeyOrURL === 'string'
     if (!isKeyString) {
-    // If a 32 byte buffer, use it as the key
+      // If a 32 byte buffer, use it as the key
       if (nameOrKeyOrURL && nameOrKeyOrURL.length === 32) {
         return { key: nameOrKeyOrURL }
       } else {
-        throw new Error('Must specify a name, url, or a 32 byte buffer with a key')
+        throw new Error(
+          'Must specify a name, url, or a 32 byte buffer with a key'
+        )
       }
     }
 
@@ -200,7 +201,9 @@ export class SDK extends EventEmitter {
         const key = stringToKey(url.hostname)
         if (!key) {
           // If not a key or a domain, throw an error
-          throw new Error('URLs must have either an encoded key or a valid DNSlink domain')
+          throw new Error(
+            'URLs must have either an encoded key or a valid DNSlink domain'
+          )
         }
         return { key }
       }
@@ -413,16 +416,21 @@ export async function create ({
   ...opts
 } = {}) {
   // TODO: Account for "random-access-application" style storage
-  if (!storage) throw new Error('Storage parameter is required to be a valid file path')
-  const corestore = opts.corestore || new CoreStore(storage, { ...corestoreOpts })
+  if (!storage) {
+    throw new Error('Storage parameter is required to be a valid file path')
+  }
+  const corestore =
+    opts.corestore || new CoreStore(storage, { ...corestoreOpts })
   const dnsCache = opts.dnsCache || new RocksDB(join(storage, 'dnsCache'))
 
   const networkKeypair = await corestore.createKeyPair('noise')
 
-  const swarm = opts.swarm || new HyperSwarm({
-    keyPair: networkKeypair,
-    ...swarmOpts
-  })
+  const swarm =
+    opts.swarm ||
+    new HyperSwarm({
+      keyPair: networkKeypair,
+      ...swarmOpts
+    })
 
   const sdk = new SDK({
     ...opts,
