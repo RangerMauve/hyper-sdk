@@ -117,6 +117,14 @@ export class SDK extends EventEmitter {
     return [...this.#coreCache.values()]
   }
 
+  get drives () {
+    return [...this.#driveCache.values()]
+  }
+
+  get bees () {
+    return [...this.#beeCache.values()]
+  }
+
   async resolveDNSToKey (hostname) {
     // TODO: Check for TTL?
     if (this.#dnsMemoryCache.has(hostname)) {
@@ -368,7 +376,7 @@ export class SDK extends EventEmitter {
     if (typeof topic === 'string') {
       return this.join(this.makeTopicKey(topic), opts)
     }
-    const joinOpts = { ...this.defaultJoinOpts, ...opts }
+    const joinOpts = { ...this.#defaultJoinOpts, ...opts }
     return this.swarm.join(topic, joinOpts)
   }
 
