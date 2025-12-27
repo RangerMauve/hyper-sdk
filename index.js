@@ -16,8 +16,9 @@ import RocksDB from 'rocksdb-native'
 /** @import {DriveOpts} from "hyperdrive" */
 /** @import {CoreStoreOpts} from "corestore" */
 
-/** @typedef {string|Buffer} NameOrKeyOrURL */
-/** @typedef {{key?:Buffer|Uint8Array|null, name?:string}} ResolvedKeyOrName */
+/** @typedef {Buffer|Uint8Array} Key */
+/** @typedef {string|Key} NameOrKeyOrURL */
+/** @typedef {{key?:Key|null, name?:string}} ResolvedKeyOrName */
 /**
  * @typedef {object} DNSResponse
  * @property {{name: string, data: string}} DNSResponse.Answer
@@ -415,7 +416,7 @@ export class SDK extends EventEmitter {
   /**
    * Derive a topic key (for hypercores) from a namespace.
    * @param {string} name Name of the namespace to derive
-   * @returns {Buffer}
+   * @returns {Key}
    */
   makeTopicKey (name) {
     const [key] = crypto.namespace(name, 1)
@@ -452,7 +453,7 @@ export class SDK extends EventEmitter {
 
   /**
    *
-   * @param {string|Buffer} topic
+   * @param {string|Key} topic
    * @param {JoinOpts} opts
    * @returns {PeerDiscovery}
    */
@@ -466,7 +467,7 @@ export class SDK extends EventEmitter {
 
   /**
    *
-   * @param {string|Buffer} topic
+   * @param {string|Key} topic
    * @returns {Promise<void>}
    */
   leave (topic) {
@@ -477,14 +478,14 @@ export class SDK extends EventEmitter {
   }
 
   /**
-   * @param {Buffer} id
+   * @param {Key} id
    */
   joinPeer (id) {
     this.swarm.joinPeer(id)
   }
 
   /**
-   * @param {Buffer} id
+   * @param {Key} id
    */
   leavePeer (id) {
     this.swarm.leavePeer(id)
@@ -571,7 +572,7 @@ export async function create ({
 
 /**
  * @param {string} string
- * @returns {Buffer|Uint8Array|null}
+ * @returns {Key|null}
  */
 function stringToKey (string) {
   if (string.length === 52) {

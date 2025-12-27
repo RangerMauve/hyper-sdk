@@ -34,8 +34,9 @@ export function create({ storage, corestoreOpts, swarmOpts, fetch, ...opts }?: {
 /** @import {CoreOpts} from "hypercore" */
 /** @import {DriveOpts} from "hyperdrive" */
 /** @import {CoreStoreOpts} from "corestore" */
-/** @typedef {string|Buffer} NameOrKeyOrURL */
-/** @typedef {{key?:Buffer|Uint8Array|null, name?:string}} ResolvedKeyOrName */
+/** @typedef {Buffer|Uint8Array} Key */
+/** @typedef {string|Key} NameOrKeyOrURL */
+/** @typedef {{key?:Key|null, name?:string}} ResolvedKeyOrName */
 /**
  * @typedef {object} DNSResponse
  * @property {{name: string, data: string}} DNSResponse.Answer
@@ -75,7 +76,7 @@ export class SDK extends EventEmitter<any> {
     autoJoin: boolean;
     get swarm(): HyperSwarm;
     get corestore(): CoreStore;
-    get publicKey(): any;
+    get publicKey(): import("hyperswarm").Key;
     get connections(): Connection[];
     get peers(): Map<string, import("hyperswarm").PeerInfo>;
     /**
@@ -132,9 +133,9 @@ export class SDK extends EventEmitter<any> {
     /**
      * Derive a topic key (for hypercores) from a namespace.
      * @param {string} name Name of the namespace to derive
-     * @returns {Buffer}
+     * @returns {Key}
      */
-    makeTopicKey(name: string): Buffer;
+    makeTopicKey(name: string): Key;
     /**
      * Start peer discovery on a core. Use this if you created a core on a namespaced CoreStore
      * @param {Hypercore} core
@@ -144,25 +145,25 @@ export class SDK extends EventEmitter<any> {
     joinCore(core: Hypercore, opts?: JoinOpts): Promise<void>;
     /**
      *
-     * @param {string|Buffer} topic
+     * @param {string|Key} topic
      * @param {JoinOpts} opts
      * @returns {PeerDiscovery}
      */
-    join(topic: string | Buffer, opts?: JoinOpts): PeerDiscovery;
+    join(topic: string | Key, opts?: JoinOpts): PeerDiscovery;
     /**
      *
-     * @param {string|Buffer} topic
+     * @param {string|Key} topic
      * @returns {Promise<void>}
      */
-    leave(topic: string | Buffer): Promise<void>;
+    leave(topic: string | Key): Promise<void>;
     /**
-     * @param {Buffer} id
+     * @param {Key} id
      */
-    joinPeer(id: Buffer): void;
+    joinPeer(id: Key): void;
     /**
-     * @param {Buffer} id
+     * @param {Key} id
      */
-    leavePeer(id: Buffer): void;
+    leavePeer(id: Key): void;
     ready(): Promise<void>;
     close(): Promise<void>;
     /**
@@ -172,9 +173,10 @@ export class SDK extends EventEmitter<any> {
     replicate(connection: Connection): void;
     #private;
 }
-export type NameOrKeyOrURL = string | Buffer;
+export type Key = Buffer | Uint8Array;
+export type NameOrKeyOrURL = string | Key;
 export type ResolvedKeyOrName = {
-    key?: Buffer | Uint8Array | null;
+    key?: Key | null;
     name?: string;
 };
 export type DNSResponse = {

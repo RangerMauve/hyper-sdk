@@ -1,16 +1,42 @@
 declare module "hypercore" {
+  import { EventEmitter } from "node:events";
   import type RocksDB from "rocksdb-native";
 
-  type EncodingType = "json" | "utf-8" | "binary"
+  type Key = Buffer | Uint8Array;
+  interface KeyPair {
+    publicKey: Key;
+    secretKey: Key;
+  }
+
+  type EncodingType = "json" | "utf-8" | "binary";
+  type Stringable = string | { toString(): string };
+
+  type Primitive =
+    | bigint
+    | boolean
+    | null
+    | number
+    | string
+    | symbol
+    | undefined;
+
+  type JSONValue = Primitive | JSONObject | JSONArray;
+
+  interface JSONObject {
+    [key: string]: JSONValue;
+  }
+
+  interface JSONArray extends Array<JSONValue> {}
+
   interface CoreOpts {
     valueEncoding?: EncodingType;
     keyPair?: KeyPair;
-    encryption?: { key: Buffer };
+    encryption?: { key: Key };
     timeout?: number;
     writable?: boolean;
     inflightRange?: [number, number];
     userData?: { [key: string]: any };
-    key?: string;
+    key?: Key;
   }
   interface GetOpts {
     wait?: boolean;
@@ -21,8 +47,36 @@ declare module "hypercore" {
     decrypt?: boolean;
     raw?: boolean;
   }
-  interface Peer {}
-  export default class Hypercore<DataType = string | Buffer | Uint8Array> {
+
+  interface Peer {
+    remotePublicKey: Key;
+    readonly paused: boolean;
+    readonly removed: boolean;
+  }
+
+  interface Extension<Encoding = Buffer | Uint16Array> {
+    send(message: Encoding, peer: Peer): void;
+    broadcast(message: Encoding): void;
+    destroy(): void;
+  }
+
+  interface ExtensionOpts<Encoding = Buffer | Uint8Array> {
+    onmessage: (message: Encoding, peer: Peer) => void;
+  }
+
+  interface HypercoreEvents {
+    close: [];
+    ready: [];
+    append: [];
+    "peer-add": [peer: Peer];
+    "peer-remove": [peer: Peer];
+    upload: [index: number, byteLength: number, peer: Peer];
+    download: [index: number, byteLength: number, peer: Peer];
+  }
+
+  export default class Hypercore<
+    DataType = string | Buffer | Uint8Array
+  > extends EventEmitter<HypercoreEvents> {
     constructor(storage: string | RocksDB, opts?: CoreOpts);
     key: Buffer;
     url: string;
@@ -47,21 +101,17 @@ declare module "hypercore" {
       data: DataType | DataType[],
       options?: { writable?: boolean }
     ): Promise<number>;
-
-    on(event: "close", cb: () => void);
-    on(event: "ready", cb: () => void);
-    on(event: "append", cb: () => void);
-    on(event: "peer-add", cb: (peer: Peer) => void);
-    on(event: "peer-remove", cb: (peer: Peer) => void);
-    on(event: "upload", index: number, byteLength: number, peer: Peer): void;
-    on(event: "download", index: number, byteLength: number, peer: Peer): void;
-    
-    once(event: "close", cb: () => void);
-    once(event: "ready", cb: () => void);
-    once(event: "append", cb: () => void);
-    once(event: "peer-add", cb: (peer: Peer) => void);
-    once(event: "peer-remove", cb: (peer: Peer) => void);
-    once(event: "upload", index: number, byteLength: number, peer: Peer): void;
-    once(event: "download", index: number, byteLength: number, peer: Peer): void;
+    registerExtension(
+      name: string,
+      extensionOpts: ExtensionOpts<string> & { encoding: "utf-8" }
+    ): Extension<Stringable>;
+    registerExtension(
+      name: string,
+      extensionOpts: ExtensionOpts<Buffer | Uint8Array> & { encoding?: "buffer" }
+    ): Extension<Buffer | Uint8Array>;
+    registerExtension<Encoding = JSONValue>(
+      name: string,
+      extensionOpts: ExtensionOpts<Encoding> & { encoding: "json" }
+    ): Extension<Encoding>;
   }
 }
