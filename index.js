@@ -508,6 +508,23 @@ export class SDK extends EventEmitter {
   }
 
   /**
+   * Persist any pending transactions to disk and pause network activity.
+   * Use this when the app goes in the background or you want to pause seeding.
+   */
+  async suspend() {
+    await this.swarm.suspend()
+    await this.corestore.suspend()
+  }
+
+  /**
+   * Resume network interactions and re-enable storage after suspending.
+   */
+  async resume() {
+    await this.corestore.resume()
+    await this.swarm.resume()
+  }
+
+  /**
    * Replicate a connection from hyperswarm manually
    * @param {Connection} connection
    */
@@ -517,9 +534,9 @@ export class SDK extends EventEmitter {
 }
 
 /**
- *
+ * Initialize the SDK
  * @param {object} options
- * @param {string} [options.storage]
+ * @param {string} options.storage
  * @param {CoreStoreOpts} [options.corestoreOpts]
  * @param {SwarmOpts} [options.swarmOpts]
  * @param {typeof globalThis["fetch"]} [options.fetch]
@@ -539,7 +556,7 @@ export async function create ({
   swarmOpts = DEFAULT_SWARM_OPTS,
   fetch = globalThis.fetch,
   ...opts
-} = {}) {
+} = {storage: ''}) {
   if (!storage) {
     throw new Error('Storage parameter is required to be a valid file path')
   }

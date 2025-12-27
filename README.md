@@ -226,3 +226,12 @@ sdk1.joinPeer(sdk2.publicKey)
 This will gracefully close connections, remove advertisements from the DHT, and close any open file handles.
 
 Make sure you invoke this to keep the network fast and to avoid data corruption!
+
+### sdk.suspend()
+
+This will pause network and data operations.
+Use it when your app is in the background or the user wants to pause seeding.
+
+### sdk.resume()
+
+Undo the effects of `suspend()`, re-enable network and storage.
