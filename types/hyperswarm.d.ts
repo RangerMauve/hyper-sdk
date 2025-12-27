@@ -1,11 +1,24 @@
 declare module "hyperswarm" {
+  import { EventEmitter } from "stream";
+  import { Duplex } from "streamx";
+  type Key = Buffer | Uint8Array;
+  interface KeyPair {
+    publicKey: Key;
+    secretKey: Key;
+  }
   interface SwarmOpts {
     keyPair?: KeyPair;
+    seed?: Key;
+    maxKeys?: number;
+    firewall?: (remotePublicKey: Key) => boolean
   }
-  interface Connection {
-    once(event: "close", cb: () => void): void;
+  type Connection = Duplex;
+  interface PeerInfo {
+    readonly publicKey: Key;
+    readonly topics: Key[];
+    readonly prioritized: boolean;
+    ban(banStatus: boolean): void;
   }
-  interface PeerInfo {}
   interface JoinOpts {
     server?: boolean;
     client?: boolean;
@@ -13,24 +26,29 @@ declare module "hyperswarm" {
   interface PeerDiscovery {
     flushed(): Promise<void>;
     destroy(): Promise<void>;
+    refresh(joinOpts: JoinOpts): Promise<void>;
   }
-  export default class Hyperswarm {
+  interface SwarmEvents {
+    close: [];
+    connection: [connection: Connection, peer: PeerInfo];
+    update: [];
+    ban: [peerInfo: PeerInfo, err: Error];
+  }
+  export default class Hyperswarm extends EventEmitter<SwarmEvents> {
     keyPair: KeyPair;
     connections: Connection[];
     peers: Map<string, PeerInfo>;
 
-    constructor(opts: SwarmOpts);
+    constructor(opts?: SwarmOpts);
 
-    on(
-      event: "connection",
-      cb: (connection: Connection, peer: PeerInfo) => void
-    ): void;
     flush(): Promise<void>;
-    join(topic: Buffer, joinOpts?: JoinOpts): PeerDiscovery;
-    leave(topic: Buffer): Promise<void>;
-    joinPeer(topic: Buffer): void;
-    leavePeer(topic: Buffer): void;
+    join(topic: Key, joinOpts?: JoinOpts): PeerDiscovery;
+    leave(topic: Key): Promise<void>;
+    joinPeer(topic: Key): void;
+    leavePeer(topic: Key): void;
     destroy(): Promise<void>;
     listen(): Promise<void>;
+    suspend(): Promise<void>;
+    resume(): Promise<void>;
   }
 }
