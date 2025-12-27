@@ -6,6 +6,7 @@
         "allowJs": true,
         "declaration": true,
         "emitDeclarationOnly": true,
+        "moduleResolution": "nodenext",
         "outDir": "dist",
     },
     "extends": "@tsconfig/node20/tsconfig.json",
