@@ -235,3 +235,25 @@ Use it when your app is in the background or the user wants to pause seeding.
 ### sdk.resume()
 
 Undo the effects of `suspend()`, re-enable network and storage.
+
+## TypeScript Support
+
+This module comes with TypeScript types, but by default Hypercore and other Holepunch libraries do not.
+
+You can add these missing types by importing them from the SDK's `types` folder in your `tsconfig.json` file.
+
+Your `tsconfig.json` file should look something like this:
+
+```
+{
+    "compilerOptions": {
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
+    },
+    "extends": "@tsconfig/node20/tsconfig.json",
+    "include": [
+        "./test.js",
+        "./node_modules/hyper-sdk/types/*.d.ts"
+    ]
+}
+```
