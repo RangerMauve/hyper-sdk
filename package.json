@@ -68,6 +68,7 @@
     "@types/b4a": "^1.6.5",
     "@types/brittle": "^3.5.0",
     "@types/node": "^25.0.3",
+    "@types/streamx": "^2.9.5",
     "bare": "^1.22.0",
     "brittle": "^3.7.0",
     "standard": "^17.0.0",
