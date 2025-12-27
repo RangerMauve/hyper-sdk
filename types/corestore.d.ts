@@ -6,7 +6,7 @@ declare module "corestore" {
   import { Readable } from "streamx";
   interface CoreStoreOpts {
     writable?: boolean;
-    readOnly: boolean;
+    readOnly?: boolean;
     primaryKey?: Key;
     unsafe?: boolean;
   }

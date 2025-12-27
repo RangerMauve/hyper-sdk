@@ -70,15 +70,15 @@ declare module "hypercore" {
     DataType = string | Buffer | Uint8Array
   > extends EventEmitter<HypercoreEvents> {
     constructor(storage: string | RocksDB, opts?: CoreOpts);
-    key: Buffer;
-    url: string;
-    id: string;
-    discoveryKey: Buffer;
+    readonly key: Buffer;
+    readonly url: string;
+    readonly id: string;
+    readonly discoveryKey: Buffer;
     discovery: object;
-    writable: boolean;
-    length: number;
-    closed: boolean;
-    peers: Peer[];
+    readonly writable: boolean;
+    readonly length: number;
+    readonly closed: boolean;
+    readonly peers: Peer[];
 
     findingPeers(): () => void;
     ready(): Promise<void>;

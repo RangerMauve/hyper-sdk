@@ -10,7 +10,7 @@ declare module "hyperswarm" {
     keyPair?: KeyPair;
     seed?: Key;
     maxKeys?: number;
-    firewall?: (remotePublicKey: Key) => boolean
+    firewall?: (remotePublicKey: Key) => boolean;
   }
   type Connection = Duplex;
   interface PeerInfo {
@@ -35,9 +35,9 @@ declare module "hyperswarm" {
     ban: [peerInfo: PeerInfo, err: Error];
   }
   export default class Hyperswarm extends EventEmitter<SwarmEvents> {
-    keyPair: KeyPair;
-    connections: Connection[];
-    peers: Map<string, PeerInfo>;
+    readonly keyPair: KeyPair;
+    readonly connections: Connection[];
+    readonly peers: Map<string, PeerInfo>;
 
     constructor(opts?: SwarmOpts);
 
