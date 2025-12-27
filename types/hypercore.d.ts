@@ -11,21 +11,13 @@ declare module "hypercore" {
   type EncodingType = "json" | "utf-8" | "binary";
   type Stringable = string | { toString(): string };
 
-  type Primitive =
-    | bigint
-    | boolean
-    | null
-    | number
-    | string
-    | symbol
-    | undefined;
-
+  // Plain JSON object based on this stack overflow answer
+  // https://stackoverflow.com/a/59647842
+  type Primitive = bigint | boolean | null | number | string;
   type JSONValue = Primitive | JSONObject | JSONArray;
-
   interface JSONObject {
     [key: string]: JSONValue;
   }
-
   interface JSONArray extends Array<JSONValue> {}
 
   interface CoreOpts {
@@ -107,7 +99,9 @@ declare module "hypercore" {
     ): Extension<Stringable>;
     registerExtension(
       name: string,
-      extensionOpts: ExtensionOpts<Buffer | Uint8Array> & { encoding?: "buffer" }
+      extensionOpts: ExtensionOpts<Buffer | Uint8Array> & {
+        encoding?: "buffer";
+      }
     ): Extension<Buffer | Uint8Array>;
     registerExtension<Encoding = JSONValue>(
       name: string,
