@@ -20,13 +20,15 @@ declare module "hyperdrive" {
         byteOffset: number;
         byteLength: number;
       };
-      metadata: any | null;
+      metadata: Metadata | null;
     };
   }
 
+  type Metadata = { [key: string]: any };
+
   interface WriteOptions {
     executable?: boolean;
-    metadata: { [string]: any };
+    metadata: Metadata;
   }
 
   interface ReadOptions {

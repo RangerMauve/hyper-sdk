@@ -44,6 +44,7 @@ declare module "hypercore" {
     remotePublicKey: Key;
     readonly paused: boolean;
     readonly removed: boolean;
+    readonly extensions: Map<string, Extension>
   }
 
   interface Extension<Encoding = Buffer | Uint16Array> {
@@ -79,6 +80,7 @@ declare module "hypercore" {
     readonly length: number;
     readonly closed: boolean;
     readonly peers: Peer[];
+    readonly extensions: Map<string, Extension>
 
     findingPeers(): () => void;
     ready(): Promise<void>;
