@@ -1,6 +1,6 @@
 {
   "name": "hyper-sdk",
-  "version": "6.2.2",
+  "version": "6.2.1",
   "description": "A Software Development Kit for the Hypercore-Protocol",
   "type": "module",
   "exports": {
